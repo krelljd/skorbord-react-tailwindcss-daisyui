@@ -8,7 +8,8 @@
 - Team color/accent bars extend full height, with no spacing or borders.
 - The active set is visually highlighted (border left/right only).
 - Winning score in each set is highlighted if the set is won (to 25 for sets 1/2, 15 for set 3, must win by 2 points).
-- All font sizes use relative units (em) for accessibility.
+- All font sizes use relative units (vw) for accessibility, but should adhere to reasonable minimums.
+- Animate scores individually as they change, fading down when incrementing and fading up when decrementing.
 - Tournament name and all scoreboard data update in real time.
 - White and black are allowed as accent colors.
 - All scoreboard data operations use REST and WebSocket APIs.
