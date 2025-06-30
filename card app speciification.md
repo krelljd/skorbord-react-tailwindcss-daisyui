@@ -26,7 +26,7 @@
 - Users should be able to choose a randomized game to play based on favorited game types.
 - All of this should be tracked independently per SQID environment.
 
-## Business Logic
+## System Logic
 
 - Real-time score updates are provided via REST and WebSocket (Socket.IO) APIs.
 - All scoring data operations use REST and WebSocket APIs.
@@ -43,7 +43,11 @@
 ## UI/UX Requirements
 
 - UI elements are optimized for mobile and touch use, and should work optimally in modern mobile browsers.
-- Buttons and text use relative font sizes for accessibility.
+- Buttons and text use relative font sizes (vwh) for accessibility.
+- TailwindCSS and DaisyUI should be used for themeing the application.
+- DaisyUI theme `dark` should be used. (e.g.  @plugin "daisyui" {
+   themes: dark --default;
+ })
 
 ## Additional Notes
 
