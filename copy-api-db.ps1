@@ -1,10 +1,10 @@
-# Copies server/.env from Raspberry Pi to local server/.env
-# Usage: .\copy-server-env.ps1
+# Copies api/.env from Raspberry Pi to local api/.env
+# Usage: .\copy-api-env.ps1
 
 $remoteUser = "pi"
 $remoteHost = "raspberrypi.local"
-$remotePath = "/home/pi/skorbord/server/scoreboards.db"
-$localPath = "server/scoreboards.db"
+$remotePath = "/home/pi/skorbord-cards/api/scoreboards.db"
+$localPath = "api/scoreboards.db"
 
 Write-Host "Copying $remoteUser@${remoteHost}:${remotePath} to $localPath ..."
 
