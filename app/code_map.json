@@ -1,0 +1,25 @@
+{
+  "env": {
+    "api": [".env", ".env.example"],
+    "app": [".env", ".env.example"]
+  },
+  "ignore": {
+    "api": [".gitignore"],
+    "app": [".gitignore"]
+  },
+  "docs": [
+    "README.md",
+    "code_map.json",
+    "card app llm action plan.md",
+    "card app PRD.md",
+    "card app specification.md",
+    "deployment_steps.md"
+  ],
+  "components": [
+    "src/components/PlayerList.jsx",
+    "src/components/ScoreControls.jsx",
+    "src/components/GameTypeSelector.jsx",
+    "src/components/RivalrySelector.jsx",
+    "src/components/TeamManager.jsx"
+  ]
+}

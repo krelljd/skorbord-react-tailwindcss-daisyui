@@ -50,6 +50,7 @@
 - DaisyUI theme `dark` should be used. (e.g.  @plugin "daisyui" {
    themes: dark --default;
  })
+- use DaisyUI’s semantic color classes
 
 ## Additional Notes
 

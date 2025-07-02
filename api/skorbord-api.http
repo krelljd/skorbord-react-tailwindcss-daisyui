@@ -1,0 +1,171 @@
+### List all players
+GET http://localhost:2525/api/players
+Accept: application/json
+
+### Create a new player
+POST http://localhost:2525/api/players
+Content-Type: application/json
+
+{
+  "name": "Test Player"
+}
+
+### Get a player by ID
+GET http://localhost:2525/api/players/1
+Accept: application/json
+
+### Update a player by ID
+PUT http://localhost:2525/api/players/1
+Content-Type: application/json
+
+{
+  "name": "Updated Player"
+}
+
+### Delete a player by ID
+DELETE http://localhost:2525/api/players/1
+
+### List all games
+GET http://localhost:2525/api/games
+Accept: application/json
+
+### Create a new game
+POST http://localhost:2525/api/games
+Content-Type: application/json
+
+{
+  "name": "Test Game",
+  "game_type": "type1"
+}
+
+### Get a game by ID
+GET http://localhost:2525/api/games/1
+Accept: application/json
+
+### Update a game by ID
+PUT http://localhost:2525/api/games/1
+Content-Type: application/json
+
+{
+  "name": "Updated Game",
+  "game_type": "type2"
+}
+
+### Delete a game by ID
+DELETE http://localhost:2525/api/games/1
+
+### List all game types
+GET http://localhost:2525/api/game_types
+Accept: application/json
+
+### Create a new game type
+POST http://localhost:2525/api/game_types
+Content-Type: application/json
+
+{
+  "name": "Type A",
+  "description": "Description for Type A"
+}
+
+### Get a game type by ID
+GET http://localhost:2525/api/game_types/1
+Accept: application/json
+
+### Update a game type by ID
+PUT http://localhost:2525/api/game_types/1
+Content-Type: application/json
+
+{
+  "name": "Type B",
+  "description": "Updated description"
+}
+
+### Delete a game type by ID
+DELETE http://localhost:2525/api/game_types/1
+
+### List all rivalries
+GET http://localhost:2525/api/rivalries
+Accept: application/json
+
+### Create a new rivalry
+POST http://localhost:2525/api/rivalries
+Content-Type: application/json
+
+{
+  "team1_id": 1,
+  "team2_id": 2
+}
+
+### Get a rivalry by ID
+GET http://localhost:2525/api/rivalries/1
+Accept: application/json
+
+### Update a rivalry by ID
+PUT http://localhost:2525/api/rivalries/1
+Content-Type: application/json
+
+{
+  "team1_id": 2,
+  "team2_id": 1
+}
+
+### Delete a rivalry by ID
+DELETE http://localhost:2525/api/rivalries/1
+
+### List all stats
+GET http://localhost:2525/api/stats
+Accept: application/json
+
+### Create a new stat
+POST http://localhost:2525/api/stats
+Content-Type: application/json
+
+{
+  "player_id": 1,
+  "game_id": 1,
+  "score": 10
+}
+
+### Get a stat by ID
+GET http://localhost:2525/api/stats/1
+Accept: application/json
+
+### Update a stat by ID
+PUT http://localhost:2525/api/stats/1
+Content-Type: application/json
+
+{
+  "player_id": 1,
+  "game_id": 1,
+  "score": 20
+}
+
+### Delete a stat by ID
+DELETE http://localhost:2525/api/stats/1
+
+### List all sqids
+GET http://localhost:2525/api/sqids
+Accept: application/json
+
+### Create a new sqid
+POST http://localhost:2525/api/sqids
+Content-Type: application/json
+
+{
+  "value": "sqid-123"
+}
+
+### Get a sqid by ID
+GET http://localhost:2525/api/sqids/1
+Accept: application/json
+
+### Update a sqid by ID
+PUT http://localhost:2525/api/sqids/1
+Content-Type: application/json
+
+{
+  "value": "sqid-456"
+}
+
+### Delete a sqid by ID
+DELETE http://localhost:2525/api/sqids/1

@@ -1,0 +1,6 @@
+-- 006_sqids.sql: Add sqids table (idempotent)
+CREATE TABLE IF NOT EXISTS sqids (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  value TEXT NOT NULL UNIQUE,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

@@ -1,0 +1,16 @@
+{
+  "api": {
+    "description": "Node.js backend (Express, Socket.IO, SQLite)",
+    "env": [".env", ".env.example"],
+    "ignore": [".gitignore"],
+    "main": "src/server.js",
+    "migrations": "migrations/",
+    "seeds": "seeds/"
+  },
+  "app": {
+    "description": "React frontend (Vite, TailwindCSS, DaisyUI)",
+    "env": [".env", ".env.example"],
+    "ignore": [".gitignore"],
+    "main": "src/main.jsx"
+  }
+}

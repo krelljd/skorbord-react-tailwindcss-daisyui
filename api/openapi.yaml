@@ -1,0 +1,650 @@
+openapi: 3.0.3
+info:
+  title: Skorbord API
+  version: 1.0.0
+  description: REST API for Skorbord Card Scoring App
+servers:
+  - url: http://localhost:2525/api
+paths:
+  /players:
+    get:
+      summary: List all players
+      responses:
+        '200':
+          description: List of players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Player'
+    post:
+      summary: Create a new player
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+      responses:
+        '201':
+          description: Player created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+  /players/{id}:
+    get:
+      summary: Get a player by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Player found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '404':
+          description: Player not found
+    put:
+      summary: Update a player by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Player updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '404':
+          description: Player not found
+    delete:
+      summary: Delete a player by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Player deleted
+        '404':
+          description: Player not found
+  /games:
+    get:
+      summary: List all games
+      responses:
+        '200':
+          description: List of games
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Game'
+    post:
+      summary: Create a new game
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                game_type:
+                  type: string
+      responses:
+        '201':
+          description: Game created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+  /games/{id}:
+    get:
+      summary: Get a game by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Game found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '404':
+          description: Game not found
+    put:
+      summary: Update a game by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                game_type:
+                  type: string
+      responses:
+        '200':
+          description: Game updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '404':
+          description: Game not found
+    delete:
+      summary: Delete a game by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Game deleted
+        '404':
+          description: Game not found
+  /game_types:
+    get:
+      summary: List all game types
+      responses:
+        '200':
+          description: List of game types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GameType'
+    post:
+      summary: Create a new game type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Game type created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameType'
+  /game_types/{id}:
+    get:
+      summary: Get a game type by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Game type found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameType'
+        '404':
+          description: Game type not found
+    put:
+      summary: Update a game type by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Game type updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameType'
+        '404':
+          description: Game type not found
+    delete:
+      summary: Delete a game type by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Game type deleted
+        '404':
+          description: Game type not found
+  /rivalries:
+    get:
+      summary: List all rivalries
+      responses:
+        '200':
+          description: List of rivalries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rivalry'
+    post:
+      summary: Create a new rivalry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - team1_id
+                - team2_id
+              properties:
+                team1_id:
+                  type: integer
+                team2_id:
+                  type: integer
+      responses:
+        '201':
+          description: Rivalry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rivalry'
+  /rivalries/{id}:
+    get:
+      summary: Get a rivalry by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Rivalry found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rivalry'
+        '404':
+          description: Rivalry not found
+    put:
+      summary: Update a rivalry by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - team1_id
+                - team2_id
+              properties:
+                team1_id:
+                  type: integer
+                team2_id:
+                  type: integer
+      responses:
+        '200':
+          description: Rivalry updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rivalry'
+        '404':
+          description: Rivalry not found
+    delete:
+      summary: Delete a rivalry by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Rivalry deleted
+        '404':
+          description: Rivalry not found
+  /stats:
+    get:
+      summary: List all stats
+      responses:
+        '200':
+          description: List of stats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Stat'
+    post:
+      summary: Create a new stat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - player_id
+                - game_id
+              properties:
+                player_id:
+                  type: integer
+                game_id:
+                  type: integer
+                score:
+                  type: integer
+      responses:
+        '201':
+          description: Stat created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stat'
+  /stats/{id}:
+    get:
+      summary: Get a stat by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Stat found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stat'
+        '404':
+          description: Stat not found
+    put:
+      summary: Update a stat by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - player_id
+                - game_id
+              properties:
+                player_id:
+                  type: integer
+                game_id:
+                  type: integer
+                score:
+                  type: integer
+      responses:
+        '200':
+          description: Stat updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stat'
+        '404':
+          description: Stat not found
+    delete:
+      summary: Delete a stat by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Stat deleted
+        '404':
+          description: Stat not found
+  /sqids:
+    get:
+      summary: List all sqids
+      responses:
+        '200':
+          description: List of sqids
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sqid'
+    post:
+      summary: Create a new sqid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - value
+              properties:
+                value:
+                  type: string
+      responses:
+        '201':
+          description: Sqid created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sqid'
+  /sqids/{id}:
+    get:
+      summary: Get a sqid by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Sqid found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sqid'
+        '404':
+          description: Sqid not found
+    put:
+      summary: Update a sqid by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - value
+              properties:
+                value:
+                  type: string
+      responses:
+        '200':
+          description: Sqid updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sqid'
+        '404':
+          description: Sqid not found
+    delete:
+      summary: Delete a sqid by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Sqid deleted
+        '404':
+          description: Sqid not found
+components:
+  schemas:
+    Player:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    Game:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        game_type:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    GameType:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    Rivalry:
+      type: object
+      properties:
+        id:
+          type: integer
+        team1_id:
+          type: integer
+        team2_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+    Stat:
+      type: object
+      properties:
+        id:
+          type: integer
+        player_id:
+          type: integer
+        game_id:
+          type: integer
+        score:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+    Sqid:
+      type: object
+      properties:
+        id:
+          type: integer
+        value:
+          type: string
+        created_at:
+          type: string
+          format: date-time
