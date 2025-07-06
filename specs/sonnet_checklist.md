@@ -4,9 +4,6 @@ This checklist identifies missing instructions, unclear requirements, and questi
 
 ## Missing Technical Specifications
 
-
-
-
 - [x] **Complete database schema definition**
   - Table structures for `sqids`, `players`, `games`, `game_types`, `rivalries`, and `stats` are defined in `duckdb_db_models.md`. All tables use explicit primary keys and appropriate foreign keys for referential integrity. Example:
     - `sqids`: id (PK, TEXT), name (TEXT, unique), created_at (TIMESTAMP)
@@ -28,25 +25,30 @@ This checklist identifies missing instructions, unclear requirements, and questi
   - Migration tool: dbmate (cross-platform, works with DuckDB). All schema changes are versioned in `api/db/migrations/`.
   - On migration failure in production: Log error, halt startup, and alert admin. Migrations are idempotent and can be retried safely after fixing the issue.
 
-
 ### API Specifications
 
 - [x] **Complete REST endpoint definitions**
-  - Endpoints (all under `/api`):
-    - `POST /api/sqids` — Create new sqid (API only; there is no UI for listing, editing, or deleting Sqids)
-    - `GET /api/sqids/:id` — Get sqid details
-    - `GET /api/sqids/:id/players` — List players in sqid
-    - `POST /api/sqids/:id/players` — Add player to sqid
-    - `GET /api/games/:id` — Get game details
-    - `POST /api/games` — Create new game
-    - `PUT /api/games/:id` — Update game (end, change type, etc)
-    - `GET /api/games/:id/stats` — Get stats for a game
-    - `POST /api/games/:id/stats` — Add/update player stats
+  - Endpoints:
+    **Sqid-specific endpoints (all under `/api/:sqid`):**
+    - `POST /api/:sqid` — Create new sqid (API only; there is no UI for listing, editing, or deleting Sqids)
+    - `GET /api/:sqid` — Get sqid details
+    - `GET /api/:sqid/players` — List players in sqid
+    - `POST /api/:sqid/players` — Add player to sqid
+    - `GET /api/:sqid/games/:gameId` — Get game details
+    - `POST /api/:sqid/games` — Create new game
+    - `POST /api/:sqid/games` — Create new game
+      - All players included in a game must already exist in the sqid. If a player does not exist, the client must add them via `POST /api/:sqid/players` before creating the game.
+    - `PUT /api/:sqid/games/:gameId` — Update game (end, change type, etc)
+    - `GET /api/:sqid/games/:gameId/stats` — Get stats for a game
+    - `POST /api/:sqid/games/:gameId/stats` — Add/update player stats
+    - `GET /api/:sqid/rivalries/:rivalryId` — Get rivalry details
+      - Rivalries are auto-created by the backend when two players play the same game type together for the first time in a sqid. There is no manual creation endpoint; rivalries are managed automatically based on game participation.
+    - `GET /api/:sqid/players/:playerId` — Get player details
+
+    **Global endpoints (not sqid-specific):**
     - `GET /api/game_types` — List game types
     - `POST /api/game_types` — Add new game type (admin UI only)
     - `DELETE /api/game_types/:id` — Remove a game type (admin UI only)
-    - `GET /api/rivalries/:id` — Get rivalry details
-    - `GET /api/players/:id` — Get player details
   - Payloads: All requests/response bodies are JSON. Example for creating a player: `{ "name": "Alice" }`. All endpoints return `{ success: true, data: ... }` or `{ success: false, error: "..." }`.
   - Status codes: 200 for success, 201 for created, 400 for validation errors, 404 for not found, 403 for forbidden, 500 for server errors.
   - Validation: All IDs must be valid UUIDs or short strings. Names must be non-empty, max 64 chars. No duplicate names per sqid/game_type. Scores must be between -999 and 999 (inclusive); the API will reject values outside this range, and the client UI must prevent entry beyond these boundaries.
