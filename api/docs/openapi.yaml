@@ -1,0 +1,794 @@
+openapi: 3.0.3
+info:
+  title: Skorbord Card Scoring API
+  description: |
+    REST API for the Skorbord card scoring application. This API provides endpoints for managing players, games, scores, and real-time updates via WebSocket connections.
+    
+    ## Features
+    - Player management (CRUD operations)
+    - Game creation and management
+    - Real-time scoring with WebSocket support
+    - Game statistics and rivalry tracking
+    - Multiple game type support
+    
+    ## Real-time Updates
+    The API supports real-time updates via Socket.IO. Connect to the WebSocket endpoint to receive:
+    - Live score updates
+    - Game status changes
+    - Player updates
+    
+    ## Rate Limiting
+    API endpoints are rate-limited to prevent abuse:
+    - 100 requests per 15 minutes per IP address
+    - Stricter limits may apply to certain endpoints
+    
+  version: 1.0.0
+  contact:
+    name: Skorbord Support
+    url: https://skorbord.app
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://skorbord.app/api
+    description: Production server
+  - url: http://localhost:2424/api
+    description: Development server
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns the current health status of the API
+      operationId: getHealth
+      tags:
+        - System
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                    description: Server uptime in seconds
+
+  /players:
+    get:
+      summary: List all players
+      description: Retrieve a list of all players with optional filtering and pagination
+      operationId: getPlayers
+      tags:
+        - Players
+      parameters:
+        - name: search
+          in: query
+          description: Search players by name
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum number of players to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          description: Number of players to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Player'
+
+    post:
+      summary: Create a new player
+      description: Create a new player with the specified name and avatar color
+      operationId: createPlayer
+      tags:
+        - Players
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                  description: Player's display name
+                avatar_color:
+                  type: string
+                  pattern: '^#[0-9A-F]{6}$'
+                  description: Hexadecimal color code for player avatar
+                  example: '#FF5733'
+      responses:
+        '201':
+          description: Player created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /players/{id}:
+    get:
+      summary: Get player by ID
+      description: Retrieve a specific player by their unique identifier
+      operationId: getPlayer
+      tags:
+        - Players
+      parameters:
+        - $ref: '#/components/parameters/PlayerId'
+      responses:
+        '200':
+          description: Player details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update player
+      description: Update an existing player's information
+      operationId: updatePlayer
+      tags:
+        - Players
+      parameters:
+        - $ref: '#/components/parameters/PlayerId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                avatar_color:
+                  type: string
+                  pattern: '^#[0-9A-F]{6}$'
+      responses:
+        '200':
+          description: Player updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete player
+      description: Delete a player (only if they have no associated games)
+      operationId: deletePlayer
+      tags:
+        - Players
+      parameters:
+        - $ref: '#/components/parameters/PlayerId'
+      responses:
+        '204':
+          description: Player deleted successfully
+        '400':
+          description: Player cannot be deleted (has associated games)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /game-types:
+    get:
+      summary: List available game types
+      description: Retrieve all supported card game types
+      operationId: getGameTypes
+      tags:
+        - Game Types
+      responses:
+        '200':
+          description: List of game types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GameType'
+
+  /games:
+    post:
+      summary: Create a new game
+      description: Create a new game session with specified players and settings
+      operationId: createGame
+      tags:
+        - Games
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - game_type_id
+                - player_ids
+              properties:
+                game_type_id:
+                  type: string
+                  description: ID of the game type to play
+                player_ids:
+                  type: array
+                  items:
+                    type: string
+                  minItems: 2
+                  description: Array of player IDs participating in the game
+                settings:
+                  type: object
+                  description: Game-specific settings
+                  additionalProperties: true
+      responses:
+        '201':
+          description: Game created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameWithPlayers'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /games/{id}:
+    get:
+      summary: Get game details
+      description: Retrieve complete game information including players, scores, and rounds
+      operationId: getGame
+      tags:
+        - Games
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      responses:
+        '200':
+          description: Game details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameDetails'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /games/{id}/scores:
+    post:
+      summary: Add round scores
+      description: Submit scores for a specific round of the game
+      operationId: addScores
+      tags:
+        - Games
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - round_number
+                - scores
+              properties:
+                round_number:
+                  type: integer
+                  minimum: 1
+                  description: Round number (must be sequential)
+                scores:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - player_id
+                      - points
+                    properties:
+                      player_id:
+                        type: string
+                        description: ID of the player
+                      points:
+                        type: integer
+                        description: Points scored by the player in this round
+      responses:
+        '201':
+          description: Scores added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Round'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /games/{id}/status:
+    put:
+      summary: Update game status
+      description: Change the status of a game (e.g., complete, pause, resume)
+      operationId: updateGameStatus
+      tags:
+        - Games
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [active, paused, completed, cancelled]
+                  description: New status for the game
+      responses:
+        '200':
+          description: Game status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /stats:
+    get:
+      summary: Get global statistics
+      description: Retrieve overall statistics across all games and players
+      operationId: getGlobalStats
+      tags:
+        - Statistics
+      responses:
+        '200':
+          description: Global statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GlobalStats'
+
+  /stats/players/{id}:
+    get:
+      summary: Get player statistics
+      description: Retrieve detailed statistics for a specific player
+      operationId: getPlayerStats
+      tags:
+        - Statistics
+      parameters:
+        - $ref: '#/components/parameters/PlayerId'
+      responses:
+        '200':
+          description: Player statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerStats'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /rivalries:
+    get:
+      summary: Get rivalries
+      description: Retrieve head-to-head statistics between players
+      operationId: getRivalries
+      tags:
+        - Statistics
+      parameters:
+        - name: player1_id
+          in: query
+          description: First player ID for head-to-head comparison
+          schema:
+            type: string
+        - name: player2_id
+          in: query
+          description: Second player ID for head-to-head comparison
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum number of rivalries to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of rivalries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rivalry'
+
+components:
+  parameters:
+    PlayerId:
+      name: id
+      in: path
+      required: true
+      description: Unique identifier for a player
+      schema:
+        type: string
+        
+    GameId:
+      name: id
+      in: path
+      required: true
+      description: Unique identifier for a game
+      schema:
+        type: string
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Validation failed
+              details:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    field:
+                      type: string
+                    message:
+                      type: string
+                    value:
+                      oneOf:
+                        - type: string
+                        - type: number
+                        - type: boolean
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Player:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier
+        name:
+          type: string
+          description: Player's display name
+        avatar_color:
+          type: string
+          pattern: '^#[0-9A-F]{6}$'
+          description: Hexadecimal color code
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - avatar_color
+        - created_at
+        - updated_at
+
+    GameType:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier
+        name:
+          type: string
+          description: Display name of the game
+        description:
+          type: string
+          description: Detailed description
+        min_players:
+          type: integer
+          description: Minimum number of players
+        max_players:
+          type: integer
+          description: Maximum number of players
+        supports_teams:
+          type: boolean
+          description: Whether the game supports team play
+        default_settings:
+          type: object
+          description: Default game settings
+          additionalProperties: true
+      required:
+        - id
+        - name
+        - description
+        - min_players
+        - max_players
+        - supports_teams
+
+    Game:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier
+        short_id:
+          type: string
+          description: Short alphanumeric code for easy sharing
+        game_type_id:
+          type: string
+          description: ID of the game type
+        status:
+          type: string
+          enum: [active, paused, completed, cancelled]
+        settings:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - short_id
+        - game_type_id
+        - status
+        - settings
+        - created_at
+        - updated_at
+
+    GameWithPlayers:
+      allOf:
+        - $ref: '#/components/schemas/Game'
+        - type: object
+          properties:
+            players:
+              type: array
+              items:
+                type: object
+                properties:
+                  player_id:
+                    type: string
+                  name:
+                    type: string
+                  avatar_color:
+                    type: string
+                  position:
+                    type: integer
+
+    GameDetails:
+      allOf:
+        - $ref: '#/components/schemas/GameWithPlayers'
+        - type: object
+          properties:
+            game_type:
+              $ref: '#/components/schemas/GameType'
+            scores:
+              type: array
+              items:
+                type: object
+                properties:
+                  player_id:
+                    type: string
+                  total_score:
+                    type: integer
+                  round_scores:
+                    type: array
+                    items:
+                      type: integer
+            rounds:
+              type: array
+              items:
+                $ref: '#/components/schemas/Round'
+
+    Round:
+      type: object
+      properties:
+        id:
+          type: string
+        game_id:
+          type: string
+        round_number:
+          type: integer
+        completed:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        scores:
+          type: array
+          items:
+            type: object
+            properties:
+              player_id:
+                type: string
+              points:
+                type: integer
+      required:
+        - id
+        - game_id
+        - round_number
+        - completed
+        - created_at
+
+    GlobalStats:
+      type: object
+      properties:
+        total_games:
+          type: integer
+        total_players:
+          type: integer
+        games_completed:
+          type: integer
+        games_active:
+          type: integer
+        most_popular_game_type:
+          type: string
+        average_game_duration:
+          type: number
+          description: Average game duration in minutes
+        total_rounds_played:
+          type: integer
+
+    PlayerStats:
+      type: object
+      properties:
+        player_id:
+          type: string
+        total_games:
+          type: integer
+        games_won:
+          type: integer
+        games_lost:
+          type: integer
+        win_rate:
+          type: number
+          description: Win rate as a percentage
+        average_score:
+          type: number
+        best_score:
+          type: integer
+        worst_score:
+          type: integer
+        favorite_game_type:
+          type: string
+        total_rounds_played:
+          type: integer
+        recent_games:
+          type: array
+          items:
+            type: object
+            properties:
+              game_id:
+                type: string
+              game_type:
+                type: string
+              final_score:
+                type: integer
+              position:
+                type: integer
+              completed_at:
+                type: string
+                format: date-time
+
+    Rivalry:
+      type: object
+      properties:
+        player1:
+          $ref: '#/components/schemas/Player'
+        player2:
+          $ref: '#/components/schemas/Player'
+        games_played:
+          type: integer
+        player1_wins:
+          type: integer
+        player2_wins:
+          type: integer
+        ties:
+          type: integer
+        win_rate_player1:
+          type: number
+        average_score_difference:
+          type: number
+        last_game_date:
+          type: string
+          format: date-time
+        head_to_head_history:
+          type: array
+          items:
+            type: object
+            properties:
+              game_id:
+                type: string
+              game_type:
+                type: string
+              winner_id:
+                type: string
+                nullable: true
+              player1_score:
+                type: integer
+              player2_score:
+                type: integer
+              completed_at:
+                type: string
+                format: date-time
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code (optional)
+        details:
+          type: object
+          description: Additional error details (optional)
+          additionalProperties: true
+      required:
+        - error
+
+tags:
+  - name: System
+    description: System health and status endpoints
+  - name: Players
+    description: Player management operations
+  - name: Game Types
+    description: Available card game types
+  - name: Games
+    description: Game session management and scoring
+  - name: Statistics
+    description: Game statistics and analytics
+
+externalDocs:
+  description: Skorbord API Documentation
+  url: https://skorbord.app/docs

@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS for mobile optimization and touch-friendly UI */
+@layer base {
+  html {
+    /* Ensure dark theme and mobile-optimized viewport */
+    background-color: #111827;
+    color: #f9fafb;
+  }
+
+  body {
+    /* Prevent text selection on interactive elements */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    
+    /* Optimize for touch interactions */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Allow text selection for inputs and content areas */
+  input, textarea, [contenteditable], .selectable {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+}
+
+@layer components {
+  /* Touch-friendly button styling */
+  .btn-touch {
+    @apply min-h-[44px] min-w-[44px] touch-none;
+    /* Ensure buttons meet minimum touch target size */
+  }
+  
+  /* Score adjustment buttons */
+  .score-btn {
+    @apply btn btn-touch btn-primary text-xl font-bold rounded-xl;
+    /* Large, easy to press score adjustment buttons */
+  }
+  
+  /* Player card styling */
+  .player-card {
+    @apply card bg-base-200 shadow-xl p-4 m-2;
+    /* Consistent card styling for players */
+  }
+  
+  /* Mobile-first container */
+  .mobile-container {
+    @apply container mx-auto px-4 py-6 max-w-lg;
+    /* Mobile-optimized container width */
+  }
+
+  /* Score display styling */
+  .score-display {
+    @apply text-4xl font-bold text-center mb-4;
+    /* Large, readable score display */
+  }
+
+  /* Game type selector */
+  .game-type-select {
+    @apply select select-bordered select-lg w-full text-lg;
+    /* Large, touch-friendly dropdown */
+  }
+
+  /* Modal styling for mobile */
+  .modal-mobile {
+    @apply modal-box max-w-sm mx-4;
+    /* Mobile-optimized modal size */
+  }
+
+  /* Loading state */
+  .loading-state {
+    @apply loading loading-spinner loading-lg text-primary;
+    /* Consistent loading spinner */
+  }
+
+  /* Error state */
+  .error-state {
+    @apply alert alert-error;
+    /* Consistent error display */
+  }
+
+  /* Success state */
+  .success-state {
+    @apply alert alert-success;
+    /* Consistent success display */
+  }
+}
+
+@layer utilities {
+  /* Touch-optimized utilities */
+  .touch-none {
+    touch-action: none;
+  }
+  
+  .touch-pan-x {
+    touch-action: pan-x;
+  }
+  
+  .touch-pan-y {
+    touch-action: pan-y;
+  }
+  
+  /* Score tally animation */
+  .score-tally {
+    @apply absolute top-0 right-0 bg-accent text-accent-content px-2 py-1 rounded-lg text-sm font-bold;
+    animation: fadeInOut 3s ease-in-out forwards;
+  }
+
+  /* Fade in/out animation for score tally */
+  @keyframes fadeInOut {
+    0% { opacity: 0; transform: translateY(-10px); }
+    20% { opacity: 1; transform: translateY(0); }
+    80% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-10px); }
+  }
+
+  /* Connection status indicator */
+  .connection-indicator {
+    @apply fixed top-4 right-4 badge badge-sm z-50;
+  }
+  
+  .connection-connected {
+    @apply badge-success;
+  }
+  
+  .connection-disconnected {
+    @apply badge-error;
+  }
+  
+  /* Slide in animations for mobile views */
+  .slide-in-bottom {
+    animation: slideInBottom 0.3s ease-out;
+  }
+  
+  @keyframes slideInBottom {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+}
