@@ -6,7 +6,7 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ## 1. Project Structure & Tooling
 
-- Use `api/` for backend (Node.js, Express, Socket.IO, SQLite, ES6+ JavaScript)
+- Use `api/` for backend (Node.js, Express, Socket.IO, DuckDB, ES6+ JavaScript)
 - Use `app/` for frontend (Vite, React, TailwindCSS, DaisyUI, ES6+ JavaScript)
 - Ensure all code and markdown content is standards-compliant
 - Follow naming conventions and folder structure as per documentation
@@ -19,9 +19,9 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ## 2. Database & Data Model
 
-- Implement SQLite schema as per PRD (tables for sqids, players, teams, games, game_types, rivalries, stats, etc.)
+- Implement DuckDB to store data across sessions
 - Ensure all database scripts are idempotent and can be run multiple times without causing issues
-- Use SQLite for all persistent storage
+- Use DuckDB for all persistent storage
 - Add migration scripts for schema updates and document all migrations
 - Seed with sample data for local development
 - Document schema and migrations
@@ -31,13 +31,14 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ## 3. Backend API (`api/`)
 
-- Set up Express server with REST endpoints for CRUD on all entities
+- Set up Express server with REST endpoints needed for the UI to efficiently store and retrieve the data needed for app functionality. ensure required fields are appropriately handled in the request and response models.
 - Implement real-time updates using Socket.IO (WebSocket) APIs
 - Implement middleware for Sqid-based access control
 - Add error handling for database failures and emit status to clients
 - Add CORS and security best practices
 - Use only modern JavaScript (ES6+), avoid TypeScript
 - Ensure all code is readable, maintainable, and well-documented (comments should explain why decisions were made)
+
 - Use Context7 for API documentation, endpoint discovery, and code navigation
 
 ---
@@ -57,7 +58,7 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ## 5. UI Components & Views
 
-- Build reusable, maintainable components: PlayerList, ScoreControls, GameTypeSelector, RivalrySelector, TeamManager, etc.
+- Build reusable, maintainable components: PlayerList, ScoreControls, GameTypeSelector, RivalrySelector, etc.
 - Ensure all controls are touch-friendly and use relative font sizes (vwh)
 - Use TailwindCSS and DaisyUI for all styling, adhering to the dark theme
 - Ensure all UI is optimized for mobile and touch use
@@ -69,10 +70,11 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ## 6. Game Logic & State
 
-- Implement logic for starting games, adding/removing players, selecting/creating rivalries, and team management
+- Implement logic for starting games, adding/removing players, selecting/creating rivalries
 - Implement score updating, win/loss detection, and game finalization
 - Ensure all state changes are synced via REST and WebSocket (Socket.IO)
 - Display clear UI warnings if persistence fails or real-time sync is lost
+- First player to reach the win or loss condition should 
 - Document game logic and state flows using Context7
 
 ---

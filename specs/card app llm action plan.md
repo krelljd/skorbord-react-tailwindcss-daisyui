@@ -10,15 +10,15 @@ This action plan outlines all steps required to build, test, document, and deplo
 - [ ] Step 1: Create and maintain `.env`, `.env.example`, and `.gitignore` files in both `api/` and `app/` directories.
 - [ ] Step 2: Add a `README.md` and `code_map.json` to the project root for onboarding and structure mapping.
 - [ ] Step 3: Set up ESLint and Prettier for both backend and frontend; add `lint` and `format` scripts to both `package.json` files.
-- [ ] Step 4: Scaffold the backend (`api/`) with Node.js, Express, Socket.IO, and SQLite; add migration and seed scripts, and ensure a migration runner is available (e.g., `npm run migrate`, `npm run seed`).
+- [ ] Step 4: Scaffold the backend (`api/`) with Node.js, Express, Socket.IO, and DuckDB; add migration and seed scripts, and ensure a migration runner is available (e.g., `npm run migrate`, `npm run seed`).
 - [ ] Step 5: Add `dev`, `test`, `lint`, and `format` scripts to both `api/package.json` and `app/package.json`.
 - [ ] Step 6: Set up a test runner (e.g., Jest, Vitest) and add test scripts in both `package.json` files.
-- [ ] Step 7: Implement the full SQLite schema for all required entities (sqids, players, teams, games, game_types, rivalries, stats, etc.), ensuring idempotent migrations and seed data for development.
+- [ ] Step 7: Implement the full DuckDB schema for all required entities (sqids, players, games, game_types, rivalries, stats, etc.), ensuring idempotent migrations and seed data for development.
 - [ ] Step 8: Develop REST and WebSocket (Socket.IO) APIs for all CRUD operations and real-time updates, including middleware for Sqid-based access control and robust error handling.
 - [ ] Step 9: Add OpenAPI spec and `.http` files for API documentation and manual testing.
-- [ ] Step 10: Implement backend logic for all features: game management, scoring, rivalry tracking, team management, stats aggregation, favoriting, randomizer, and real-time sync.
+- [ ] Step 10: Implement backend logic for all features: game management, scoring, rivalry tracking, stats aggregation, favoriting, randomizer, and real-time sync.
 - [ ] Step 11: Scaffold the frontend (`app/`) using Vite, React, TailwindCSS, and DaisyUI (dark theme); configure TailwindCSS, DaisyUI, and Vite proxy in the frontend; ensure `vite.config.js` proxies `/api` to backend.
-- [ ] Step 12: Build reusable, maintainable frontend components (PlayerList, ScoreControls, GameTypeSelector, RivalrySelector, TeamManager, etc.) with mobile-first, touch-friendly UI and relative font sizes (vwh).
+- [ ] Step 12: Build reusable, maintainable frontend components (PlayerList, ScoreControls, GameTypeSelector, RivalrySelector, etc.) with mobile-first, touch-friendly UI and relative font sizes (vwh).
 - [ ] Step 13: Implement frontend routing for `/cards/:sqid` and related views, including authentication/access via Sqid in the URL.
 - [ ] Step 14: Integrate frontend with backend APIs for real-time updates, error handling, and state synchronization.
 - [ ] Step 15: Add frontend features for favoriting game types, random game selection, and modal windows for admin tasks and rivalry stats.

@@ -25,6 +25,7 @@
 - Game types can be favorited.
 - Users should be able to choose a randomized game to play based on favorited game types.
 - All of this should be tracked independently per SQID environment.
+- When starting to update scores by pressing scoring buttons, there should be a running tally of scores that is updated if the score continues to change within a 3 second window. The scoring mini-session total should fade away 3 seconds after the last scoring update. it should continue to adjust if the scores are updated for the player within the 3 second window. It should be in a highlighted color, shown bold and displayed like a superscript value showing +# or -#. it should hug the top right of the displayed score for the player.
 
 ## System Logic
 
@@ -32,24 +33,24 @@
 - All scoring data operations use REST and WebSocket APIs.
 - Each loaded versions of this app should see real-time updates entered by any other loaded instance.
 - Real-time updates can be sent if the API call to persist the data in a database fails, but must display to the users that data tracking is not working and historical data may not be working.
-- Frontend build output is always in the `dist/` directory for deployment.
-- Secure access to each card tracking instance is via a unique encoded URL parameter (Sqids).
+- Secure access to each card tracking instance is via a unique encoded URL segment (Sqids).
 - Administrative tasks should be handled by modal windows and should not interfere with core usage of game scoring.
 - Rivalry stats should be prominently displayed in a model window after a game is finalized. You should also be able to access the stats separately from the starting screen.
-
-## Data Model
-
-- `Sqid`: Unique encoded identifier for secure access
-- TBD
 
 ## UI/UX Requirements
 
 - UI elements are optimized for mobile and touch use, and should work optimally in modern mobile browsers.
 - Buttons and text use relative font sizes (vwh) for accessibility.
-- TailwindCSS and DaisyUI should be used for themeing the application.
-- DaisyUI theme `dark` should be used. (e.g.  @plugin "daisyui" {
-   themes: dark --default;
- })
+- Player cards should be visually stacked by default for use by iPhones in a web browser. They may expand horizontally if used in a web browser or wider view.
+- A dark theme should be used.
+
+## Technology Requirements
+
+- Use dbmate for DuckDB migrations
+- Configure DuckDB to use a file path in .env
+`DATABASE_URL=duckdb:///db/cards-duckdb.db`
+- Migrations directory should be `api/db/migrations/`
+- Add migration scripts as .sql files in migrations directory.
 
 ## Additional Notes
 

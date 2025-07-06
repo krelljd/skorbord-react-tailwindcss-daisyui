@@ -1,12 +1,12 @@
 # Product Requirements Document (PRD)
 
-**Product:** Skorbord Card Scoring App
+**Product:** Skorbord
 
 ---
 
 ## 1. Purpose
 
-Enable users to track, manage, and analyze scores for card games in real time, supporting multiple players, teams, and rivalries, with a focus on mobile usability, accessibility, and secure, shareable sessions.
+Enable users to track, manage, and analyze scores for card games in real time, supporting multiple players and rivalries, with a focus on mobile usability, accessibility, and secure, shareable sessions.
 
 ---
 
@@ -16,6 +16,7 @@ Enable users to track, manage, and analyze scores for card games in real time, s
 
 - Each scoreboard session is accessed via a unique, encoded URL parameter (Sqid).
 - All data is isolated per Sqid.
+- All URLs should be isolated by Sqid (example: /:sqid/cards, /:sqid/admin)
 
 ### 2.2 Game Setup
 
@@ -23,7 +24,7 @@ Enable users to track, manage, and analyze scores for card games in real time, s
 - Game types have default win/loss conditions, which can be overridden per game.
 - Players can be added/removed before the game starts; names are editable and default to "Player 1", "Player 2", etc.
 - Games require at least two players.
-- Users can select or create rivalries (player or team-based) to auto-populate players.
+- Users can select or create rivalries (player-based) to auto-populate players.
 
 ### 2.3 Scoring & Gameplay
 
@@ -32,16 +33,16 @@ Enable users to track, manage, and analyze scores for card games in real time, s
 - When a win/loss condition is met, the winner is displayed.
 - Finalizing a game updates rivalry stats and history.
 
-### 2.4 Rivalries & Teams
+### 2.4 Rivalries
 
-- Rivalries are tracked per game type and player/team combination.
+- Rivalries are tracked per game type and player combination.
 - Rivalry stats include average margin of victory, last 10 results, and min/max win/loss margins.
-- Team rivalries are supported, with team names generated from grouped player names.
+- Rivalries should be checked for existence at game creation, and autocreated if one doesn't exist.
 
 ### 2.5 Favorites & Randomizer
 
 - Users can favorite game types.
-- Users can start a random game from their favorites.
+- Users can request a randomly selected game type to play from their list of favorites. The user can then select to start a game of that type, or ask for another randomized selection.
 
 ### 2.6 Real-Time Collaboration
 
@@ -60,7 +61,7 @@ Enable users to track, manage, and analyze scores for card games in real time, s
 - Frontend build output is in the `dist/` directory.
 - Backend code is in `api/`, frontend in `app/`.
 - Project structure and dependencies are mapped in `code_map.json`.
-- Deployment steps are documented in `deployment_steps.md`.
+- Deployment steps are documented in `deployment/deployment_steps.md`.
 
 ---
 
