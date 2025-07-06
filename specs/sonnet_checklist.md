@@ -58,9 +58,21 @@ This checklist identifies missing instructions, unclear requirements, and questi
     - `player_joined`, `player_left` (broadcast to `/sqid/:id` room)
     - `game_started`, `game_ended` (broadcast to `/sqid/:id` room)
   - Data structure: `{ type: "score_update", gameId, playerId, score, timestamp }` etc. All events are minimal and trigger the client to fetch updated data via REST.
+  - **Persistence and retry:** WebSocket (Socket.IO) events are strictly stateless signals. Events are not persisted or stored on the server, and once a notification is successfully sent to connected clients, it is not retried or replayed. If a client is offline or misses a notification, it will fetch the latest data on reconnect or page load. No event history or delivery guarantees beyond best-effort notification. This ensures the system remains simple, scalable, and avoids unnecessary complexity in event management.
   - Connection failures: Client stores unsent actions locally and retries on reconnect. Reconnect attempts use exponential backoff. UI shows connection status. No battery-intensive polling.
   - Rooms/namespaces: Each sqid uses its own room `/sqid/:id` for isolation.
-  - WebSocket usage is minimal: events only notify clients to fetch new data, not to send full data payloads.
+
+  - **Offline-first and connectivity:** The application must work fully offline using service workers and local storage/IndexedDB. The app should check for network connectivity at least once per minute; when connectivity is restored, it should automatically switch to online mode and sync any queued actions or data. UI must clearly indicate offline/online status.
+
+  - **Service worker cache invalidation strategy:**
+    - Use a network-first, fallback-to-cache approach for API/data requests to ensure users get fresh data when online, but can still use the app offline.
+    - Invalidate cached static assets and data on each new deployment by versioning cache names (e.g., include a build hash or version in the cache key).
+    - For dynamic data (e.g., scores, player lists), use a short cache TTL (1–5 minutes) and always revalidate with the server when online. If offline, serve the most recent cached data.
+    - On service worker activation, delete old caches to ensure users receive the latest assets and code.
+    - Document the cache strategy in the codebase and ensure it is tested across browsers and devices.
+    - All cache logic must be robust against network flakiness and support seamless transition between offline and online modes.
+  
+  - WebSocket usage is minimal: events only notify clients to fetch new data, not to send full data payloads. **No event persistence or retry is performed after a notification succeeds; all events are ephemeral and stateless.**
 
 - [x] **Authentication/Authorization details**
   - Sqid-based access: All API and WebSocket requests require a valid Sqid in the route or payload. Access is limited to data within the given Sqid. No user authentication is implemented; all actions are anonymous.
@@ -180,7 +192,7 @@ This checklist identifies missing instructions, unclear requirements, and questi
   - API response time: ≤ 200ms p95 for all endpoints under normal load.
   - Concurrent users: Support up to 8 concurrent users per Sqid (hard limit).
   - Maximum database size: 1 million rows in stats table, 100,000 games per Sqid.
-  - Caching: In-memory caching for hot data (e.g., current game state, player list). Use HTTP cache headers for static assets.
+  - Caching: In-memory caching for hot data (e.g., current game state, player list) in the API. Game types and other lookup/reference data must be cached both in the API (in-memory) and in the browser (local cache, e.g., IndexedDB or localStorage) to allow offline usage and fast lookups. Use HTTP cache headers for static assets. Ensure cache is invalidated and refreshed on data changes or new deployments.
 
 
 ## Questions for Clarification — Answers
