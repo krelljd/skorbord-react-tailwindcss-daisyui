@@ -1,3 +1,47 @@
+### Player Card UI/UX Requirements
+
+The player card component must deliver a professional, visually striking, and highly usable experience, closely inspired by the provided image. The following requirements must be met:
+
+- **Layout & Sizing:**
+  - Center the player’s score as a large, bold number (minimum `text-[12vwh]` on mobile, scaling up for larger screens).
+  - Player name and icon are positioned above the score, centered, with clear separation from the score.
+  - Use a card layout with rounded corners and subtle drop shadow for depth.
+  - Ensure all elements are vertically and horizontally centered within the card.
+
+- **Typography:**
+  - Use a modern, geometric sans-serif font (e.g., Inter, DM Sans, or system default) for all text.
+  - Player name: `text-[3vwh]` or larger, bold, all-caps or title case.
+  - Score: Extra bold, white, with a subtle drop shadow for legibility.
+
+- **Icons, Controls & Interactions:**
+  - The right half of the player card acts as a large increment button: tapping anywhere on the right half increments the score by 1; long-pressing increments by 10.
+  - The left half of the player card acts as a large decrement button: tapping anywhere on the left half decrements the score by 1; long-pressing decrements by 10.
+  - These regions must be visually indicated (e.g., subtle highlight or ripple on tap/press) and accessible via keyboard and screen reader.
+  - Use clear, touch-friendly icons for increment/decrement (e.g., plus/minus, with optional +5/-5 quick actions) as overlays or in corners if desired.
+  - Show a player icon and a settings/gear icon above the name, as in the reference image.
+
+- **Touch & Accessibility:**
+  - All interactive elements must have a minimum 48x48px touch target.
+  - Provide visible focus states and ARIA labels for all controls.
+  - Ensure color contrast meets WCAG AA (4.5:1 for text, 3:1 for large text/icons).
+
+- **Feedback, Animation & Tally:**
+  - When a score is changed, show a 3-second animated tally (e.g., animated count-up/down, progress bar, or visual effect) before the score is finalized and sent to the server, as specified in the Score Update Timing and UX section.
+  - Use smooth, subtle animations for score changes (e.g., scale up/down, fade, or slide transitions).
+  - Provide visual feedback (ripple, highlight) on all taps/presses.
+  - Optionally, use haptic feedback on supported devices for score changes.
+
+- **Responsiveness:**
+  - The card must scale gracefully from mobile to desktop, always keeping the score and controls prominent and accessible.
+  - Use TailwindCSS breakpoints and relative units (`vwh`, `vw`, `vh`) for sizing.
+
+- **Theme & Color Usage:**
+  - Each player card must use a unique theme color for the player name and accent elements (e.g., icons, highlights, controls). Assign colors programmatically or from a predefined palette to ensure visual distinction between players.
+  - The score and tally score must always be white (`#FFFFFF`), regardless of the player’s theme color, for maximum contrast and consistency.
+  - Use DaisyUI dark theme as the base. Custom accent color `#00FFC2` is used for primary actions and as a fallback if not enough unique colors are available.
+  - All UI elements must blend with the overall app style and not clash with other components.
+
+Include a Figma or image reference in the repo for designers/developers. All code must be well-documented and reviewed for accessibility and polish before release.
 # Sonnet Checklist: Missing Instructions and Clarifications Needed
 
 This checklist identifies missing instructions, unclear requirements, and questions that need to be addressed to generate a working application.
