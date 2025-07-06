@@ -22,9 +22,9 @@ Enable users to track, manage, and analyze scores for card games in real time, s
 
 - Users select a game type from a predefined, autocomplete-enabled list or add a new type.
 - Game types have default win/loss conditions, which can be overridden per game.
-- Players can be added/removed before the game starts; names are editable and default to "Player 1", "Player 2", etc.
+- Players can be added/removed before the game starts.
 - Games require at least two players.
-- Users can select or create rivalries (player-based) to auto-populate players.
+- Users can select rivalries (player-based) to auto-populate players.
 
 ### 2.3 Scoring & Gameplay
 

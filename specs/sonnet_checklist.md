@@ -4,135 +4,169 @@ This checklist identifies missing instructions, unclear requirements, and questi
 
 ## Missing Technical Specifications
 
-### Database Schema & Data Model
 
-- [ ] **Missing: Complete database schema definition**
-  - What are the exact table structures for sqids, players, games, game_types, rivalries, stats?
-  - What are the relationships between entities (foreign keys, constraints)?
-  - What indexes are needed for performance?
-  - What data types and field lengths should be used?
 
-- [ ] **Missing: DuckDB connection and configuration details**
-  - What is the connection string format for DuckDB?
-  - Should the database file be stored locally or in memory?
-  - What are the backup and persistence strategies?
 
-- [ ] **Missing: Migration strategy specifics**
-  - What migration tool should be used with DuckDB?
-  - How should version control for schema changes be handled?
-  - What happens if migrations fail in production?
+- [x] **Complete database schema definition**
+  - Table structures for `sqids`, `players`, `games`, `game_types`, `rivalries`, and `stats` are defined in `duckdb_db_models.md`. All tables use explicit primary keys and appropriate foreign keys for referential integrity. Example:
+    - `sqids`: id (PK, TEXT), name (TEXT, unique), created_at (TIMESTAMP)
+    - `players`: id (PK, TEXT), sqid_id (FK, TEXT), name (TEXT), joined_at (TIMESTAMP)
+    - `games`: id (PK, TEXT), sqid_id (FK, TEXT), game_type_id (FK, TEXT), started_at (TIMESTAMP), ended_at (TIMESTAMP)
+    - `game_types`: id (PK, TEXT), name (TEXT, unique), description (TEXT)
+    - `rivalries`: id (PK, TEXT), sqid_id (FK, TEXT), player1_id (FK, TEXT), player2_id (FK, TEXT), game_type_id (FK, TEXT), UNIQUE(player1_id, player2_id, game_type_id)
+    - `stats`: id (PK, TEXT), game_id (FK, TEXT), player_id (FK, TEXT), score (INTEGER), created_at (TIMESTAMP)
+  - Relationships: Foreign keys enforce that players/games/rivalries/stats reference valid sqids, game_types, and players. Each rivalry is unique per player pair and game type. Stats reference games and players.
+  - Indexes: Primary keys on all tables. Indexes on foreign keys and on `stats(game_id)`, `stats(player_id)`, and `rivalries(game_type_id)` for fast lookups. Unique constraints as noted above.
+  - Data types: Use DuckDB types (TEXT for ids, INTEGER for scores, TIMESTAMP for dates). Field lengths are not strictly limited except for ids (UUIDv4 or short string, <= 36 chars).
+
+- [x] **DuckDB connection and configuration details**
+  - Connection string format: `duckdb:///absolute/path/to/dbfile.db` for local persistent storage. Use a relative path in development, absolute in production.
+  - Database file is always stored locally on disk for persistence. In-memory mode is not used in production.
+  - Backup strategy: Nightly copy of the DuckDB file to a separate backup directory. Use `duckdb .backup` command or OS-level file copy. Retain 7 days of rolling backups. For Pi, use a cron job and external USB or network storage if available.
+
+- [x] **Migration strategy specifics**
+  - Migration tool: dbmate (cross-platform, works with DuckDB). All schema changes are versioned in `api/db/migrations/`.
+  - On migration failure in production: Log error, halt startup, and alert admin. Migrations are idempotent and can be retried safely after fixing the issue.
+
 
 ### API Specifications
 
-- [ ] **Missing: Complete REST endpoint definitions**
-  - What are all the required endpoints (GET, POST, PUT, DELETE)?
-  - What are the request/response payload structures?
-  - What status codes should be returned for different scenarios?
-  - What validation rules apply to each endpoint?
+- [x] **Complete REST endpoint definitions**
+  - Endpoints (all under `/api`):
+    - `POST /api/sqids` — Create new sqid (API only; there is no UI for listing, editing, or deleting Sqids)
+    - `GET /api/sqids/:id` — Get sqid details
+    - `GET /api/sqids/:id/players` — List players in sqid
+    - `POST /api/sqids/:id/players` — Add player to sqid
+    - `GET /api/games/:id` — Get game details
+    - `POST /api/games` — Create new game
+    - `PUT /api/games/:id` — Update game (end, change type, etc)
+    - `GET /api/games/:id/stats` — Get stats for a game
+    - `POST /api/games/:id/stats` — Add/update player stats
+    - `GET /api/game_types` — List game types
+    - `POST /api/game_types` — Add new game type (admin UI only)
+    - `DELETE /api/game_types/:id` — Remove a game type (admin UI only)
+    - `GET /api/rivalries/:id` — Get rivalry details
+    - `GET /api/players/:id` — Get player details
+  - Payloads: All requests/response bodies are JSON. Example for creating a player: `{ "name": "Alice" }`. All endpoints return `{ success: true, data: ... }` or `{ success: false, error: "..." }`.
+  - Status codes: 200 for success, 201 for created, 400 for validation errors, 404 for not found, 403 for forbidden, 500 for server errors.
+  - Validation: All IDs must be valid UUIDs or short strings. Names must be non-empty, max 64 chars. No duplicate names per sqid/game_type. Scores must be between -999 and 999 (inclusive); the API will reject values outside this range, and the client UI must prevent entry beyond these boundaries.
 
-- [ ] **Missing: WebSocket event specifications**
-  - What Socket.IO events need to be implemented?
-  - What data structure should be sent for real-time updates?
-  - How should connection failures be handled?
-  - What rooms/namespaces should be used for Sqid isolation?
+- [x] **WebSocket event specifications**
+  - Socket.IO events:
+    - `connect`, `disconnect`, `reconnect` (standard)
+    - `score_update` (broadcast to `/sqid/:id` room when any score changes)
+    - `player_joined`, `player_left` (broadcast to `/sqid/:id` room)
+    - `game_started`, `game_ended` (broadcast to `/sqid/:id` room)
+  - Data structure: `{ type: "score_update", gameId, playerId, score, timestamp }` etc. All events are minimal and trigger the client to fetch updated data via REST.
+  - Connection failures: Client stores unsent actions locally and retries on reconnect. Reconnect attempts use exponential backoff. UI shows connection status. No battery-intensive polling.
+  - Rooms/namespaces: Each sqid uses its own room `/sqid/:id` for isolation.
+  - WebSocket usage is minimal: events only notify clients to fetch new data, not to send full data payloads.
 
-- [ ] **Missing: Authentication/Authorization details**
-  - How exactly does Sqid-based access control work?
-  - Should there be middleware to validate Sqids?
-  - What happens if an invalid Sqid is provided?
-  - Are there any admin/owner permissions within a Sqid?
+- [x] **Authentication/Authorization details**
+  - Sqid-based access: All API and WebSocket requests require a valid Sqid in the route or payload. Access is limited to data within the given Sqid. No user authentication is implemented; all actions are anonymous.
+  - Middleware: All endpoints and socket connections use middleware to validate Sqid existence and membership. Invalid or missing Sqids return 403 Forbidden.
+  - Invalid Sqid: Returns 403 with error message. No data is leaked.
+  - Admin/owner: The creator of a Sqid (first client to create it) is the owner and can remove players, delete the Sqid, or transfer ownership. All other users are regular members. Ownership is tracked in the `sqids` table, but not tied to a user account.
+
 
 ### Frontend Component Specifications
 
-- [ ] **Missing: Detailed component requirements**
-  - What props and state should each component have?
-  - What are the exact UI layouts for mobile vs desktop?
-  - How should components communicate with each other?
-  - What loading states and error handling should be implemented?
+- [x] **Detailed component requirements**
+  - All components are functional, reusable, and styled with TailwindCSS + DaisyUI (dark theme, mobile-first).
+  - Main components:
+    - `SqidList`: Props: `sqids`, `onSelect`. State: none. Lists all sqids, touch-friendly.
+    - `PlayerList`: Props: `players`, `onAdd`, `onRemove`. State: loading, error.
+    - `GameBoard`: Props: `game`, `players`, `stats`, `onScoreChange`. State: local score buffer, loading, error.
+    - `ScoreInput`: Props: `player`, `score`, `onChange`. State: local input value.
+    - `RivalryList`: Props: `rivalries`, `onSelect`. State: loading.
+    - `ConnectionStatus`: Props: `status`. State: none. Shows real-time connection state.
+  - UI layouts: Mobile uses single-column, touch-optimized cards and buttons (min 48px targets). Desktop uses responsive grid/flex layouts. Font sizes use `vwh` units for scaling.
+  - Communication: Parent-to-child via props, child-to-parent via callbacks. Global state (e.g. current sqid, user) via React Context. No prop drilling.
+  - Loading/error: All async components show skeletons or spinners and error banners/messages. Errors are actionable (e.g. retry, contact support).
 
-- [ ] **Missing: Routing specifications**
-  - What are ALL the routes needed (not just /cards/:sqid)?
-  - What should happen on invalid routes?
-  - How should route parameters be validated?
-  - What navigation patterns should be used?
+- [x] **Routing specifications**
+  - Routes:
+    - `/` — Home/landing page
+    - `/sqids` — List all sqids
+    - `/sqids/:sqidId` — Sqid dashboard
+    - `/sqids/:sqidId/players` — Player management
+    - `/games/:gameId` — Game board
+    - `/rivalries/:rivalryId` — Rivalry details
+    - `/settings` — App/user settings
+    - `*` — 404 Not Found (shows friendly error, link to home)
+  - Invalid routes: Show 404 page with navigation to home or last valid page.
+  - Route parameters: All IDs validated as UUID or short string (alphanumeric, 4-36 chars). Invalid params redirect to 404.
+  - Navigation: Mobile uses bottom nav bar; desktop uses sidebar. Contextual navigation (e.g. back to sqid, back to game) is always available.
+
 
 ### Game Logic Clarifications Needed
 
-- [ ] **Unclear: Win/Loss condition logic**
-  - How exactly are win/loss conditions stored and evaluated?
-  - Can conditions be complex (e.g., "first to 500 OR first to lead by 100")?
-  - What happens if multiple players reach the condition simultaneously?
+- [x] **Win/Loss condition logic**
+  - Win/loss conditions are stored in the `game_types` table as simple numeric thresholds (e.g. `win_score`, `loss_score`). Only one condition per game type.
+  - No complex conditions (e.g. OR/AND logic) are supported.
+  - If multiple players reach the condition simultaneously: for loss, lowest score wins; for win, highest score wins. Ties are broken by earliest achievement (timestamp in `stats`).
 
-- [ ] **Unclear: Rivalry creation and management**
-  - When exactly are rivalries auto-created vs manually created?
-  - Can the same players have multiple rivalries for different game types?
+- [x] **Rivalry creation and management**
+  - Rivalries are always auto-created when two players play the same game type in a sqid for the first time. No manual creation.
+  - Only one rivalry per player pair per game type per sqid.
 
-- [ ] **Unclear: Score update timing and UX**
-  - How exactly should the 3-second score tally work?
-  - Should score updates be debounced before sending to server?
-  - What happens if network is slow/offline during scoring?
+- [x] **Score update timing and UX**
+  - When a score is entered, a 3-second animated tally is shown in the UI before the score is finalized and sent to the server. No debounce; each update is sent immediately after tally.
+  - If network is slow/offline, score updates are stored locally (IndexedDB/localStorage) and retried in the background until confirmed by the server. UI shows sync status.
 
-### UI/UX Specifications
+- [x] **Responsive design breakpoints**
+  - Breakpoints: Tailwind defaults (sm: 640px, md: 768px, lg: 1024px, xl: 1280px, 2xl: 1536px). Mobile: <640px, Tablet: 640-1023px, Desktop: ≥1024px.
+  - Layouts: Mobile = single column, large touch targets, bottom nav. Tablet = two columns, larger cards. Desktop = grid/flex, sidebar nav, more info visible.
+  - Font sizes: Use `vwh` units for scaling, e.g. `text-[4vwh]` for headings, `text-[3vwh]` for body. Minimum font size 16px for accessibility.
 
-- [ ] **Missing: Responsive design breakpoints**
-  - What specific breakpoints should be used for mobile/tablet/desktop?
-  - How should layouts change at each breakpoint?
-  - What specific vwh font size scales should be used?
+- [x] **Dark theme color palette**
+  - Use DaisyUI `dark` theme as base. Custom accent color: `#00FFC2` for primary actions. No other custom colors unless required for accessibility.
+  - All UI elements must meet WCAG AA contrast (4.5:1 for text, 3:1 for large text/icons).
 
-- [ ] **Missing: Dark theme color palette**
-  - What specific DaisyUI theme should be used?
-  - Are there custom colors needed beyond DaisyUI defaults?
-  - What accessibility contrast requirements must be met?
+- [x] **Touch interaction specifications**
+  - Minimum touch target: 48x48px for all interactive elements.
+  - Gestures: Only tap and long-press are supported. No swipe/pinch required.
+  - Feedback: All taps/presses show visual feedback (ripple, highlight) and haptic feedback if supported by device.
 
-- [ ] **Missing: Touch interaction specifications**
-  - What minimum touch target sizes are required?
-  - How should gestures like swipe/pinch be handled?
-  - What feedback should be provided for touch interactions?
+- [x] **Offline/reconnection strategy**
+  - On WebSocket loss: UI shows offline indicator (red dot, banner). All user actions are queued locally (IndexedDB/localStorage).
+  - On reconnect: Queued actions are sent in order. If any fail, user is notified and can retry or discard.
+  - UI indicators: ConnectionStatus component shows real-time status (connected, reconnecting, offline) with color and icon.
 
-### Real-time and Error Handling
+- [x] **Error handling specifications**
+  - User-facing errors: Clear, actionable messages (e.g. "Could not save score. Please try again.").
+  - Database/server errors: Sent as `{ success: false, error: "..." }` in API responses. UI shows error banner and logs details to console.
+  - Retry: All failed network/database actions are retried up to 3 times with exponential backoff. After 3 failures, user is prompted to retry manually.
 
-- [ ] **Missing: Offline/reconnection strategy**
-  - What should happen when WebSocket connection is lost?
-  - How should queued actions be handled when reconnecting?
-  - What UI indicators show connection status?
+- [x] **Development tooling specifications**
+  - Node.js: v20.x LTS. npm: v10.x or higher.
+  - Required VS Code extensions: Prettier, ESLint, Tailwind CSS IntelliSense, Docker, SQLite, REST Client, GitLens.
+  - Debugging: Use VS Code launch configs for Node.js and Chrome. API: attach to process. App: Chrome DevTools or VS Code debugger.
 
-- [ ] **Missing: Error handling specifications**
-  - What specific error messages should be shown to users?
-  - How should database errors be communicated to clients?
-  - What retry mechanisms should be implemented?
+- [x] **Testing strategy details**
+  - Frameworks: Jest (unit/integration), React Testing Library (components), Playwright (E2E, real-time flows).
+  - Coverage: 90%+ for core logic, 80%+ for UI. All critical paths must be tested.
+  - Real-time: Simulate WebSocket events in tests. Use Playwright for multi-client scenarios.
+  - Devices/browsers: Test on Chrome, Safari, Firefox (latest), iOS Safari, Android Chrome. Minimum supported: iOS 15+, Android 10+.
 
-## Development Environment Requirements
+- [x] **Raspberry Pi deployment specifics**
+  - OS: Raspberry Pi OS Lite (Debian 12/bookworm recommended).
+  - Performance: Use Node.js ARM builds, enable swap, limit background processes, optimize DB queries, and use lightweight image assets.
+  - Auto-start: Use systemd service to start API and app on boot. Example unit files provided in deployment/.
+  - Monitoring/logging: Use PM2 or systemd logs. Log errors to file and optionally send to remote syslog or cloud.
 
-- [ ] **Missing: Development tooling specifications**
-  - What specific versions of Node.js, npm should be used?
-  - What VS Code extensions are required vs recommended?
-  - What debugging configurations are needed?
-
-- [ ] **Missing: Testing strategy details**
-  - What specific test frameworks should be used?
-  - What minimum test coverage is required?
-  - How should real-time features be tested?
-  - What devices/browsers must be tested?
-
-## Deployment and Production
-
-- [ ] **Missing: Raspberry Pi deployment specifics**
-  - What OS and version should be used on Pi?
-  - What performance optimizations are needed for Pi hardware?
-  - How should the app auto-start on Pi boot?
-  - What monitoring/logging should be implemented?
-
-- [ ] **Missing: Production configuration**
-  - What environment variables are needed in production?
-  - How should secrets be managed?
-  - What SSL/HTTPS configuration is required?
-  - What backup strategies should be needed?
+- [x] **Production configuration**
+  - Env vars: `NODE_ENV`, `PORT`, `DUCKDB_PATH`, `SOCKET_IO_SECRET`, `ADMIN_EMAIL`, `LOG_LEVEL`.
+  - Secrets: Store in `.env` (not committed), use Pi OS secrets or Docker secrets for deployment.
+  - SSL/HTTPS: All traffic is HTTPS in production. Cloudflared runs as a service using the `skorbord` tunnel for secure public access. Caddy or Nginx may be used locally, but Cloudflared is the public ingress point.
+  - Backups: Nightly DB file backup to external storage or cloud. Retain 7 days minimum.
 
 ## Security Considerations
 
 - [ ] **Missing: Security specifications**
   - What rate limiting should be implemented?
-  - How should CORS be configured?
+    - Rate limiting: Enforced per IP and per Sqid. Configurable maximum, but must not exceed 10 requests per second.
+  - How should CORS be configured? 
   - What input validation/sanitization is required?
   - Are there any data retention/privacy requirements?
 
@@ -143,41 +177,49 @@ This checklist identifies missing instructions, unclear requirements, and questi
   - How many concurrent users should be supported per Sqid?
   - What are the maximum database size expectations?
   - What caching strategies should be used?
+  - API response time: ≤ 200ms p95 for all endpoints under normal load.
+  - Concurrent users: Support up to 8 concurrent users per Sqid (hard limit).
+  - Maximum database size: 1 million rows in stats table, 100,000 games per Sqid.
+  - Caching: In-memory caching for hot data (e.g., current game state, player list). Use HTTP cache headers for static assets.
 
-## Questions for Clarification
 
-### Business Logic Questions
+## Questions for Clarification — Answers
 
-1. **Game Types**: Should there be a predefined list of common card games, or start empty?
-2. **Player Limits**: What's the maximum number of players per game?
-3. **Score Limits**: Are there minimum/maximum score values?
-4. **Data Retention**: How long should game history be kept?
-5. **Sqid Management**: Who can create new Sqids? How are they generated?
+### Business Logic Answers
 
-### Technical Architecture Questions
+1. **Game Types**: Start with a predefined list of common card games (e.g. Hearts, Spades, Euchre, Poker, Custom). Admins can add or remove game types via an admin UI, which is only accessible to trusted operators (not public users).
+2. **Player Limits**: 2–8 players per game.
+3. **Score Limits**: Score per player per game must be between -999 and 999 (inclusive). This is enforced on both client and server: the API will reject values outside this range, and the client UI will prevent entry beyond the boundaries.
+4. **Data Retention**: Game history is kept indefinitely unless deleted by the Sqid owner.
+5. **Sqid Management**: Any user (no authentication required) can create a new Sqid. Sqids are generated as short, unique, human-friendly strings (e.g. 6–8 chars, base32).
 
-1. **State Management**: Should frontend use a state management library (Redux, Zustand)?
-2. **Data Validation**: Should validation be client-side, server-side, or both?
-3. **File Structure**: What specific folder structure should be used within api/ and app/?
-4. **Build Process**: Should there be Docker containers for development/production?
+### Technical Architecture Answers
 
-### User Experience Questions
+1. **State Management**: Use React Context for global state. Use Zustand for complex state if needed (no Redux).
+2. **Data Validation**: Both client-side (for UX) and server-side (for security/integrity).
+3. **File Structure**: 
+    - `api/` — Express app, routes, controllers, db, migrations, sockets
+    - `app/` — React app, components, hooks, context, pages, styles
+4. **Build Process**: Docker containers are provided for both dev and prod. See `deployment/` for Dockerfiles and compose files.
 
-1. **Navigation**: Should there be a global navigation menu or contextual navigation?
-2. **Onboarding**: Should there be help/tutorial content for new users?
-3. **Mobile Optimization**: Should there be PWA features like offline support?
-4. **Accessibility**: What specific WCAG compliance level is required?
+### User Experience Answers
+
+1. **Navigation**: Global navigation bar (mobile: bottom, desktop: sidebar) with contextual links (e.g. back to sqid/game).
+2. **Onboarding**: Yes, provide a short tutorial modal for new users and a help page.
+3. **Mobile Optimization**: Yes, PWA features enabled (offline support, installable, service worker caching).
+4. **Accessibility**: Target WCAG 2.1 AA compliance for all UI.
+
 
 ## Action Items for LLM Collaboration
 
-- [ ] Address each missing specification by providing detailed requirements
-- [ ] Answer all clarification questions with specific business/technical decisions
-- [ ] Create detailed component wireframes or mockups
-- [ ] Define complete API specifications (OpenAPI/Swagger format)
-- [ ] Create database schema with example data
-- [ ] Establish coding standards and style guides
-- [ ] Define testing requirements and coverage expectations
-- [ ] Create deployment runbooks and troubleshooting guides
+- [x] Address each missing specification by providing detailed requirements (see above)
+- [x] Answer all clarification questions with specific business/technical decisions (see above)
+- [ ] Create detailed component wireframes or mockups (next step)
+- [ ] Define complete API specifications (OpenAPI/Swagger format) (next step)
+- [ ] Create database schema with example data (next step)
+- [ ] Establish coding standards and style guides (next step)
+- [ ] Define testing requirements and coverage expectations (next step)
+- [ ] Create deployment runbooks and troubleshooting guides (next step)
 
 ---
 
