@@ -1,4 +1,4 @@
-import Database from 'duckdb';
+import sqlite3 from 'sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
@@ -9,19 +9,18 @@ const __dirname = dirname(__filename);
 class DatabaseManager {
   constructor() {
     this.db = null;
-    this.connection = null;
     this.isInitialized = false;
   }
 
   async initialize() {
     if (this.isInitialized) {
-      return this.connection;
+      return this.db;
     }
 
     try {
       // Parse database URL
-      const dbUrl = process.env.DATABASE_URL || 'duckdb:///db/cards-duckdb.db';
-      let dbPath = dbUrl.replace('duckdb://', '');
+      const dbUrl = process.env.DATABASE_URL || 'sqlite:///db/cards-sqlite.db';
+      let dbPath = dbUrl.replace(/^sqlite:\/\/\//, '');
       
       // Handle relative paths
       if (!dbPath.startsWith('/')) {
@@ -34,16 +33,24 @@ class DatabaseManager {
         fs.mkdirSync(dbDir, { recursive: true });
       }
 
-      // Initialize DuckDB
-      this.db = new Database.Database(dbPath);
-      this.connection = this.db.connect();
-
-      this.isInitialized = true;
-      console.log(`📊 Database initialized: ${dbPath}`);
+      // Initialize SQLite with sqlite3
+      this.db = new sqlite3.Database(dbPath);
       
-      return this.connection;
+      // Set initialized flag before running PRAGMA statements to avoid infinite recursion
+      this.isInitialized = true;
+      
+      // Enable foreign key constraints
+      await this.run('PRAGMA foreign_keys = ON');
+      
+      // Enable WAL mode for better concurrency
+      await this.run('PRAGMA journal_mode = WAL');
+
+      console.log(`📊 SQLite database initialized: ${dbPath}`);
+      
+      return this.db;
     } catch (error) {
       console.error('❌ Database initialization failed:', error);
+      this.isInitialized = false; // Reset flag on error
       throw error;
     }
   }
@@ -54,12 +61,12 @@ class DatabaseManager {
     }
 
     return new Promise((resolve, reject) => {
-      this.connection.all(sql, ...params, (err, result) => {
+      this.db.all(sql, params, (err, rows) => {
         if (err) {
           console.error('❌ Database query error:', err);
           reject(err);
         } else {
-          resolve(result);
+          resolve(rows);
         }
       });
     });
@@ -71,7 +78,7 @@ class DatabaseManager {
     }
 
     return new Promise((resolve, reject) => {
-      this.connection.run(sql, ...params, function(err) {
+      this.db.run(sql, params, function(err) {
         if (err) {
           console.error('❌ Database run error:', err);
           reject(err);
@@ -88,7 +95,7 @@ class DatabaseManager {
     }
 
     return new Promise((resolve, reject) => {
-      this.connection.get(sql, ...params, (err, row) => {
+      this.db.get(sql, params, (err, row) => {
         if (err) {
           console.error('❌ Database get error:', err);
           reject(err);
@@ -100,11 +107,16 @@ class DatabaseManager {
   }
 
   async close() {
-    if (this.connection) {
-      this.connection.close();
-    }
     if (this.db) {
-      this.db.close();
+      return new Promise((resolve) => {
+        this.db.close((err) => {
+          if (err) {
+            console.error('❌ Database close error:', err);
+          }
+          this.isInitialized = false;
+          resolve();
+        });
+      });
     }
     this.isInitialized = false;
   }

@@ -8,7 +8,43 @@ import { createResponse, generateUUID, determineWinner, calculateRivalryStats } 
 import { NotFoundError, ConflictError, ValidationError } from '../middleware/errorHandler.js';
 import db from '../db/database.js';
 
+
+
 const router = express.Router({ mergeParams: true });
+
+/**
+ * GET /api/:sqid/games/active - Get active (non-finalized) game for Sqid
+ */
+router.get('/active', async (req, res, next) => {
+  try {
+    const { sqid } = req.params;
+    // Join game_types and players for richer game info
+    const game = await db.get(`
+      SELECT 
+        g.*, 
+        gt.name as game_type_name,
+        gt.description as game_type_description,
+        gt.is_win_condition,
+        gt.win_condition,
+        gt.loss_condition,
+        p.name as winner_name
+      FROM games g
+      LEFT JOIN game_types gt ON g.game_type_id = gt.id
+      LEFT JOIN players p ON g.winner_id = p.id
+      WHERE g.sqid_id = ? AND g.finalized = false
+      ORDER BY g.started_at DESC LIMIT 1
+    `, [sqid]);
+    if (!game) {
+      return res.status(404).json(createResponse(false, null, 'No active game found'));
+    }
+    // Add computed win_condition_type and win_condition_value for frontend compatibility
+    game.win_condition_type = game.is_win_condition ? 'win' : 'lose';
+    game.win_condition_value = game.is_win_condition ? game.win_condition : game.loss_condition;
+    res.json(createResponse(true, game));
+  } catch (error) {
+    next(error);
+  }
+});
 
 /**
  * GET /api/:sqid/games - Get all games in Sqid
@@ -74,29 +110,52 @@ router.get('/', async (req, res, next) => {
 router.post('/', validateCreateGame, async (req, res, next) => {
   try {
     const { sqid } = req.params;
-    const { game_type_id, player_ids } = req.body;
-    
+    const { game_type_id, player_ids, player_names } = req.body;
+
     // Validate game type exists
     const gameType = await db.get(
       'SELECT * FROM game_types WHERE id = ?',
       [game_type_id]
     );
-    
     if (!gameType) {
       throw new ValidationError('Game type not found');
     }
-    
-    // Validate all players exist in this sqid
-    const playerPlaceholders = player_ids.map(() => '?').join(',');
+
+    let finalPlayerIds = [];
+    if (Array.isArray(player_ids)) {
+      finalPlayerIds = player_ids;
+    } else if (Array.isArray(player_names)) {
+      // For each name, look up or create player in this sqid
+      for (const name of player_names) {
+        const trimmed = typeof name === 'string' ? name.trim() : '';
+        // Allow empty names (will create unnamed player)
+        let player;
+        if (trimmed) {
+          player = await db.get('SELECT id FROM players WHERE sqid_id = ? AND name = ?', [sqid, trimmed]);
+        }
+        if (!player) {
+          // Create new player (empty name allowed)
+          const playerId = generateUUID();
+          await db.run('INSERT INTO players (id, sqid_id, name, created_at) VALUES (?, ?, ?, ?)', [playerId, sqid, trimmed, new Date().toISOString()]);
+          finalPlayerIds.push(playerId);
+        } else {
+          finalPlayerIds.push(player.id);
+        }
+      }
+    } else {
+      throw new ValidationError('player_ids or player_names required');
+    }
+
+    // Validate all players exist in this sqid (should always be true now)
+    const playerPlaceholders = finalPlayerIds.map(() => '?').join(',');
     const players = await db.query(
       `SELECT id FROM players WHERE sqid_id = ? AND id IN (${playerPlaceholders})`,
-      [sqid, ...player_ids]
+      [sqid, ...finalPlayerIds]
     );
-    
-    if (players.length !== player_ids.length) {
+    if (players.length !== finalPlayerIds.length) {
       throw new ValidationError('One or more players not found in this Sqid');
     }
-    
+
     // Create game within a transaction
     const result = await db.transaction(async (db) => {
       const gameId = generateUUID();
@@ -107,28 +166,28 @@ router.post('/', validateCreateGame, async (req, res, next) => {
         started_at: new Date().toISOString(),
         finalized: false
       };
-      
+
       // Insert game
       await db.run(
         'INSERT INTO games (id, sqid_id, game_type_id, started_at, finalized) VALUES (?, ?, ?, ?, ?)',
         [gameData.id, gameData.sqid_id, gameData.game_type_id, gameData.started_at, gameData.finalized]
       );
-      
+
       // Insert initial stats for each player (score 0)
-      for (const playerId of player_ids) {
+      for (const playerId of finalPlayerIds) {
         const statId = generateUUID();
         await db.run(
           'INSERT INTO stats (id, game_id, player_id, score, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
           [statId, gameId, playerId, 0, gameData.started_at, gameData.started_at]
         );
       }
-      
+
       // Create or update rivalry
-      await createOrUpdateRivalry(db, sqid, game_type_id, player_ids);
-      
+      await createOrUpdateRivalry(db, sqid, game_type_id, finalPlayerIds);
+
       return gameData;
     });
-    
+
     // Broadcast game created event
     req.io?.to(`/sqid/${sqid}`).emit('game_started', {
       type: 'game_started',
@@ -136,7 +195,7 @@ router.post('/', validateCreateGame, async (req, res, next) => {
       sqidId: sqid,
       timestamp: result.started_at
     });
-    
+
     res.status(201).json(createResponse(true, result));
   } catch (error) {
     next(error);
@@ -149,7 +208,7 @@ router.post('/', validateCreateGame, async (req, res, next) => {
 router.get('/:gameId', validateGameAccess, async (req, res, next) => {
   try {
     const { gameInfo } = req;
-    
+
     // Get game with game type info
     const game = await db.get(`
       SELECT 
@@ -165,7 +224,13 @@ router.get('/:gameId', validateGameAccess, async (req, res, next) => {
       LEFT JOIN players p ON g.winner_id = p.id
       WHERE g.id = ?
     `, [gameInfo.id]);
-    
+
+    // Add computed win_condition_type and win_condition_value for frontend compatibility
+    if (game) {
+      game.win_condition_type = game.is_win_condition ? 'win' : 'lose';
+      game.win_condition_value = game.is_win_condition ? game.win_condition : game.loss_condition;
+    }
+
     // Get players and their scores
     const players = await db.query(`
       SELECT 
@@ -179,9 +244,9 @@ router.get('/:gameId', validateGameAccess, async (req, res, next) => {
       WHERE s.game_id = ?
       ORDER BY s.created_at ASC
     `, [gameInfo.id]);
-    
+
     game.players = players;
-    
+
     res.json(createResponse(true, game));
   } catch (error) {
     next(error);

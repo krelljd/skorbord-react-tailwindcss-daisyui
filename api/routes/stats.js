@@ -65,55 +65,62 @@ router.post('/', validateGameAccess, validateUpdateStats, async (req, res, next)
       }
     }
     
-    const result = await db.transaction(async (db) => {
-      const updatedStats = [];
+    // Increment the player's score by the delta provided
+    await db.transaction(async (db) => {
       const timestamp = new Date().toISOString();
-      
-      // Update each player's score
       for (const stat of stats) {
-        await db.run(
-          'UPDATE stats SET score = ?, updated_at = ? WHERE game_id = ? AND player_id = ?',
-          [stat.score, timestamp, gameId, stat.player_id]
-        );
-        
-        const updatedStat = await db.get(
-          'SELECT s.*, p.name as player_name FROM stats s JOIN players p ON s.player_id = p.id WHERE s.game_id = ? AND s.player_id = ?',
+        // Get current score
+        const current = await db.get(
+          'SELECT score FROM stats WHERE game_id = ? AND player_id = ?',
           [gameId, stat.player_id]
         );
-        
-        updatedStats.push(updatedStat);
+        if (!current) throw new ValidationError('Player stat not found');
+        const newScore = current.score + stat.score; // stat.score is the delta
+        await db.run(
+          'UPDATE stats SET score = ?, updated_at = ? WHERE game_id = ? AND player_id = ?',
+          [newScore, timestamp, gameId, stat.player_id]
+        );
       }
-      
       // Check if game should be auto-completed
       const allPlayerScores = await db.query(
         'SELECT player_id, score FROM stats WHERE game_id = ?',
         [gameId]
       );
-      
       const winnerId = determineWinner(gameType, allPlayerScores);
-      
       if (winnerId && !gameInfo.winner_id) {
-        // Auto-update winner if conditions are met
         await db.run(
           'UPDATE games SET winner_id = ? WHERE id = ?',
           [winnerId, gameId]
         );
       }
-      
-      return { stats: updatedStats, winnerId };
     });
-    
-    // Broadcast score update
+
+    // After update, fetch all player stats for this game
+    const allStats = await db.query(
+      'SELECT s.*, p.name as player_name FROM stats s JOIN players p ON s.player_id = p.id WHERE s.game_id = ? ORDER BY s.created_at ASC',
+      [gameId]
+    );
+
+    // For tally: get the last changed player and delta
+    let player_id = null;
+    let score_change = null;
+    if (stats && stats.length === 1) {
+      player_id = stats[0].player_id;
+      score_change = stats[0].score;
+    }
+
+    // Broadcast score update with player_id and score_change for tally
     req.io?.to(`/sqid/${sqid}`).emit('score_update', {
       type: 'score_update',
-      gameId: gameId,
-      sqidId: sqid,
-      stats: result.stats,
-      winnerId: result.winnerId,
+      game_id: gameId,
+      sqid_id: sqid,
+      stats: allStats,
+      player_id,
+      score_change,
       timestamp: new Date().toISOString()
     });
-    
-    res.json(createResponse(true, result.stats));
+
+    res.json(createResponse(true, allStats));
   } catch (error) {
     next(error);
   }

@@ -17,8 +17,17 @@ vi.mock('socket.io-client', () => ({
   io: vi.fn(() => mockSocket),
 }));
 
-// Mock fetch
-global.fetch = vi.fn();
+// Mock fetch with a default implementation
+global.fetch = vi.fn((...args) => {
+  // Return a resolved promise with a default response object
+  return Promise.resolve({
+    ok: true,
+    status: 200,
+    json: async () => ({}),
+    text: async () => '',
+    // Add any other methods as needed
+  });
+});
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {

@@ -23,21 +23,16 @@ const PlayerCard = ({
     }
   }
 
+
+  // Format tally as +# or -#, bold, colored, superscript
   const formatScoreTally = (tally) => {
     if (!tally) return ''
-    const sign = tally.total > 0 ? '+' : ''
+    const sign = tally.total > 0 ? '+' : tally.total < 0 ? '' : ''
     return `${sign}${tally.total}`
   }
 
   return (
     <div className={`player-card relative ${isWinner ? 'ring-4 ring-success' : ''}`}>
-      {/* Score Tally (appears in top-right corner) */}
-      {scoreTally && (
-        <div className="score-tally">
-          {formatScoreTally(scoreTally)}
-        </div>
-      )}
-      
       {/* Winner Badge */}
       {isWinner && (
         <div className="absolute -top-2 -left-2 badge badge-success">
@@ -50,13 +45,31 @@ const PlayerCard = ({
         <h3 className="text-lg font-semibold">{playerName}</h3>
       </div>
 
-      {/* Score Display */}
-      <div className="score-display">
+      {/* Score Display with Tally Superscript */}
+      <div className="score-display relative flex items-center justify-center">
         {score}
+        {scoreTally && scoreTally.total !== 0 && (
+          <sup
+            className={`absolute -top-2 -right-3 text-base font-bold transition-opacity duration-500
+              ${scoreTally.total > 0 ? 'text-green-400' : 'text-red-400'}
+              bg-base-200 px-1 py-0.5 rounded shadow-lg
+              animate-fade-in
+            `}
+            style={{
+              fontSize: '1.1em',
+              zIndex: 10,
+              fontWeight: 700,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+            }}
+            aria-live="polite"
+          >
+            {formatScoreTally(scoreTally)}
+          </sup>
+        )}
       </div>
 
       {/* Score Control Buttons */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-4 gap-2 mt-2">
         {/* -10 Button */}
         <button
           className="score-btn btn-error"

@@ -18,11 +18,17 @@ import playerRoutes from './routes/players.js';
 import gameRoutes from './routes/games.js';
 import statsRoutes from './routes/stats.js';
 import rivalryRoutes from './routes/rivalries.js';
+import favoritesRoutes from './routes/favorites.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
-import { validateSquid } from './middleware/validation.js';
+import { validateSquid, validateCreateSquid } from './middleware/validation.js';
 import { socketAuthMiddleware } from './middleware/socketAuth.js';
+
+// Import utilities  
+import { createResponse, isValidId } from './utils/helpers.js';
+import { ValidationError, ConflictError } from './middleware/errorHandler.js';
+import db from './db/database.js';
 
 // Import socket handlers
 import { handleConnection } from './sockets/handlers.js';
@@ -113,11 +119,52 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/game_types', gameTypeRoutes);
+
+// Sqid creation route (without validation middleware)
+app.post('/api/sqids/:sqid', validateCreateSquid, async (req, res, next) => {
+  try {
+    const { sqid } = req.params;
+    const { name } = req.body;
+    
+    if (!isValidId(sqid)) {
+      throw new ValidationError('Invalid Sqid format');
+    }
+    
+    // Check if Sqid already exists
+    const existingSquid = await db.get(
+      'SELECT id FROM sqids WHERE id = ?',
+      [sqid]
+    );
+    
+    if (existingSquid) {
+      throw new ConflictError('Sqid already exists');
+    }
+    
+    // Create new Sqid
+    const sqidName = name || `Game ${sqid}`;
+    const sqidData = {
+      id: sqid,
+      name: sqidName,
+      created_at: new Date().toISOString()
+    };
+    
+    await db.run(
+      'INSERT INTO sqids (id, name, created_at) VALUES (?, ?, ?)',
+      [sqidData.id, sqidData.name, sqidData.created_at]
+    );
+    
+    res.status(201).json(createResponse(true, sqidData));
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use('/api/:sqid', validateSquid, sqidRoutes);
 app.use('/api/:sqid/players', validateSquid, playerRoutes);
 app.use('/api/:sqid/games', validateSquid, gameRoutes);
 app.use('/api/:sqid/games/:gameId/stats', validateSquid, statsRoutes);
 app.use('/api/:sqid/rivalries', validateSquid, rivalryRoutes);
+app.use('/api/:sqid/game_types/:gameTypeId/favorite', validateSquid, favoritesRoutes);
 
 // Socket.IO middleware and handlers
 io.use(socketAuthMiddleware);

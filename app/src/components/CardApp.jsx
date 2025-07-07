@@ -51,9 +51,9 @@ const CardApp = () => {
     try {
       // Load game types, players, and rivalries
       const [gameTypesRes, playersRes, rivalriesRes] = await Promise.all([
-        fetch(`${__API_URL__}/api/sqids/${sqid}/game-types`),
-        fetch(`${__API_URL__}/api/sqids/${sqid}/players`),
-        fetch(`${__API_URL__}/api/sqids/${sqid}/rivalries`)
+        fetch(`${__API_URL__}/api/game_types`),
+        fetch(`${__API_URL__}/api/${sqid}/players`),
+        fetch(`${__API_URL__}/api/${sqid}/rivalries`)
       ])
 
       if (!gameTypesRes.ok || !playersRes.ok || !rivalriesRes.ok) {
@@ -71,7 +71,7 @@ const CardApp = () => {
       setRivalries(rivalriesData.data || [])
 
       // Check if there's an active game
-      const activeGameRes = await fetch(`${__API_URL__}/api/sqids/${sqid}/games/active`)
+      const activeGameRes = await fetch(`${__API_URL__}/api/${sqid}/games/active`)
       if (activeGameRes.ok) {
         const activeGameData = await activeGameRes.json()
         if (activeGameData.data) {
@@ -133,7 +133,7 @@ const CardApp = () => {
 
   const loadRivalries = async () => {
     try {
-      const response = await fetch(`${__API_URL__}/api/sqids/${sqid}/rivalries`)
+    const response = await fetch(`${__API_URL__}/api/${sqid}/rivalries`)
       if (response.ok) {
         const data = await response.json()
         setRivalries(data.data || [])

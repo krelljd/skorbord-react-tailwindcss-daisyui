@@ -1,14 +1,14 @@
 import { render, screen } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect } from 'vitest';
 import App from '../App';
 
-// Helper function to render with router
-const renderWithRouter = (component) => {
+// Helper function to render with MemoryRouter and initial entries
+const renderWithRouter = (ui, { route = '/cards/demo' } = {}) => {
   return render(
-    <BrowserRouter>
-      {component}
-    </BrowserRouter>
+    <MemoryRouter initialEntries={[route]}>
+      {ui}
+    </MemoryRouter>
   );
 };
 
@@ -24,15 +24,20 @@ describe('App', () => {
     expect(document.querySelector('.connection-status')).toBeInTheDocument();
   });
 
-  it('shows main navigation', () => {
-    renderWithRouter(<App />);
-    // Should have main card app content
-    expect(screen.getByText(/card scoring/i)).toBeInTheDocument();
+  it('shows the correct sqid in the badge for /cards/demo', () => {
+    renderWithRouter(<App />, { route: '/cards/demo' });
+    expect(screen.getByText('demo')).toBeInTheDocument();
+  });
+
+  it('shows the correct sqid in the badge for a custom sqid', () => {
+    renderWithRouter(<App />, { route: '/cards/test123' });
+    expect(screen.getByText('test123')).toBeInTheDocument();
   });
 
   it('has dark theme applied', () => {
     renderWithRouter(<App />);
-    const app = document.querySelector('.app');
-    expect(app).toHaveClass('min-h-screen');
+    // The main wrapper should have min-h-screen
+    const app = document.querySelector('.min-h-screen');
+    expect(app).toBeInTheDocument();
   });
 });

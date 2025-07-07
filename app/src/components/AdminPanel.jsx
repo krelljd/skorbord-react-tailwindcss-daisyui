@@ -39,7 +39,7 @@ const AdminPanel = ({
     clearMessages()
 
     try {
-      const response = await fetch(`${__API_URL__}/api/sqids/${sqid}/game-types`, {
+      const response = await fetch(`${__API_URL__}/api/game_types`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -74,30 +74,27 @@ const AdminPanel = ({
     clearMessages()
 
     try {
-      const response = await fetch(`${__API_URL__}/api/sqids/${sqid}/game-types/${gameTypeId}`, {
-        method: 'PUT',
+      const method = currentStatus ? 'DELETE' : 'POST'
+      const response = await fetch(`${__API_URL__}/api/${sqid}/game_types/${gameTypeId}/favorite`, {
+        method,
         headers: {
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          is_favorited: !currentStatus
-        })
+        }
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to update game type')
+        throw new Error(errorData.message || 'Failed to update favorite status')
       }
 
-      const result = await response.json()
-      setGameTypes(prev => prev.map(gt => 
-        gt.id === gameTypeId ? result.data : gt
+      setGameTypes(prev => prev.map(gt =>
+        gt.id === gameTypeId ? { ...gt, is_favorited: !currentStatus } : gt
       ))
       setSuccess(`Game type ${!currentStatus ? 'favorited' : 'unfavorited'}!`)
 
     } catch (err) {
-      console.error('Failed to update game type:', err)
-      setError(err.message || 'Failed to update game type')
+      console.error('Failed to update favorite status:', err)
+      setError(err.message || 'Failed to update favorite status')
     } finally {
       setLoading(false)
     }
@@ -112,7 +109,7 @@ const AdminPanel = ({
     clearMessages()
 
     try {
-      const response = await fetch(`${__API_URL__}/api/sqids/${sqid}/game-types/${gameTypeId}`, {
+      const response = await fetch(`${__API_URL__}/api/game_types/${gameTypeId}`, {
         method: 'DELETE'
       })
 
@@ -134,22 +131,18 @@ const AdminPanel = ({
 
   // Player Functions
   const addPlayer = async () => {
-    if (!newPlayerName.trim()) {
-      setError('Player name is required')
-      return
-    }
-
+    // Allow empty names, do not block
     setLoading(true)
     clearMessages()
 
     try {
-      const response = await fetch(`${__API_URL__}/api/sqids/${sqid}/players`, {
+      const response = await fetch(`${__API_URL__}/api/players`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          name: newPlayerName.trim()
+          name: newPlayerName // allow empty string
         })
       })
 
@@ -181,7 +174,7 @@ const AdminPanel = ({
     clearMessages()
 
     try {
-      const response = await fetch(`${__API_URL__}/api/sqids/${sqid}/players/${playerId}`, {
+      const response = await fetch(`${__API_URL__}/api/players/${playerId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -219,7 +212,7 @@ const AdminPanel = ({
     clearMessages()
 
     try {
-      const response = await fetch(`${__API_URL__}/api/sqids/${sqid}/players/${playerId}`, {
+      const response = await fetch(`${__API_URL__}/api/players/${playerId}`, {
         method: 'DELETE'
       })
 
@@ -406,7 +399,8 @@ const AdminPanel = ({
               <button 
                 className="btn btn-primary"
                 onClick={addPlayer}
-                disabled={loading || !newPlayerName.trim()}
+                // Disable if loading or if after adding, there would be fewer than 2 non-empty names
+                disabled={loading || (players.filter(p => p.name && p.name.trim()).length + (newPlayerName && newPlayerName.trim() ? 1 : 0) < 2)}
               >
                 {loading ? (
                   <span className="loading loading-spinner loading-sm"></span>
@@ -415,6 +409,7 @@ const AdminPanel = ({
                 )}
               </button>
             </div>
+            <p className="text-xs opacity-60 mt-2">At least two player names must be filled out to enable adding.</p>
           </div>
 
           {/* Existing Players */}
@@ -432,14 +427,9 @@ const AdminPanel = ({
                       className="input input-ghost flex-1 font-semibold"
                       value={player.name}
                       onChange={(e) => updatePlayerName(player.id, e.target.value)}
-                      onBlur={(e) => {
-                        if (e.target.value !== player.name) {
-                          updatePlayerName(player.id, e.target.value)
-                        }
-                      }}
+                      // Allow empty names, no validation or defaulting
                       disabled={loading}
                     />
-                    
                     <button 
                       className="btn btn-error btn-sm ml-2"
                       onClick={() => deletePlayer(player.id)}

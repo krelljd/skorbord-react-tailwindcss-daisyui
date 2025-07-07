@@ -11,7 +11,7 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
     setError('')
 
     try {
-      const response = await fetch(`${__API_URL__}/api/sqids/${sqid}/rivalries/${rivalryId}`)
+      const response = await fetch(`${__API_URL__}/api/${sqid}/rivalries/${rivalryId}`)
       if (!response.ok) {
         throw new Error('Failed to load rivalry details')
       }

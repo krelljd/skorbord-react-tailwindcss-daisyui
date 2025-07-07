@@ -5,22 +5,25 @@ import { isValidId } from '../utils/helpers.js';
  * Validates that the socket has access to the specified Sqid
  */
 export function socketAuthMiddleware(socket, next) {
+  if (typeof next !== 'function') {
+    console.warn('socketAuthMiddleware called without next function. Skipping.');
+    return;
+  }
   try {
     const { sqid } = socket.handshake.auth;
-    
     if (!sqid || !isValidId(sqid)) {
-      return next(new Error('Invalid or missing Sqid'));
+      next(new Error('Invalid or missing Sqid'));
+      return;
     }
-    
     // Store sqid in socket for later use
     socket.sqid = sqid;
-    
     // Join the socket to the sqid room for targeted broadcasts
     socket.join(`/sqid/${sqid}`);
-    
     next();
+    return;
   } catch (error) {
     next(error);
+    return;
   }
 }
 
@@ -43,28 +46,33 @@ export function validateSocketGameAccess(socket, gameId, callback) {
 export function createSocketRateLimit(maxEvents = 10, windowMs = 60000) {
   const clients = new Map();
   
-  return function(socket, next) {
-    const clientId = socket.id;
-    const now = Date.now();
-    
-    if (!clients.has(clientId)) {
-      clients.set(clientId, { count: 1, resetTime: now + windowMs });
-      return next();
-    }
-    
-    const client = clients.get(clientId);
-    
-    if (now > client.resetTime) {
-      client.count = 1;
-      client.resetTime = now + windowMs;
-      return next();
-    }
-    
-    if (client.count >= maxEvents) {
-      return next(new Error('Rate limit exceeded'));
-    }
-    
-    client.count++;
-    next();
+  return function(eventHandler) {
+    return function(data, callback) {
+      const clientId = this.id; // 'this' refers to the socket
+      const now = Date.now();
+      
+      if (!clients.has(clientId)) {
+        clients.set(clientId, { count: 1, resetTime: now + windowMs });
+        return eventHandler.call(this, data, callback);
+      }
+      
+      const client = clients.get(clientId);
+      
+      if (now > client.resetTime) {
+        client.count = 1;
+        client.resetTime = now + windowMs;
+        return eventHandler.call(this, data, callback);
+      }
+      
+      if (client.count >= maxEvents) {
+        if (typeof callback === 'function') {
+          return callback({ success: false, error: 'Rate limit exceeded' });
+        }
+        return;
+      }
+      
+      client.count++;
+      return eventHandler.call(this, data, callback);
+    };
   };
 }

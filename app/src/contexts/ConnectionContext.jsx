@@ -11,20 +11,23 @@ export const useConnection = () => {
   return context
 }
 
-export const ConnectionProvider = ({ children }) => {
+
+export const ConnectionProvider = ({ children, sqid }) => {
   const [socket, setSocket] = useState(null)
   const [isConnected, setIsConnected] = useState(false)
   const [connectionError, setConnectionError] = useState(null)
   const [isReconnecting, setIsReconnecting] = useState(false)
 
   useEffect(() => {
-    // Initialize socket connection
+    if (!sqid) return
+    // Initialize socket connection with sqid in auth
     const newSocket = io(__API_URL__, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
       retries: 3,
       ackTimeout: 10000,
-      forceNew: true
+      forceNew: true,
+      auth: { sqid }
     })
 
     // Connection event handlers
@@ -77,7 +80,7 @@ export const ConnectionProvider = ({ children }) => {
     return () => {
       newSocket.close()
     }
-  }, [])
+  }, [sqid])
 
   const value = {
     socket,

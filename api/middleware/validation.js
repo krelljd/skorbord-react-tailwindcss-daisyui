@@ -75,27 +75,40 @@ export const validateCreateGame = [
       }
       return true;
     }),
-  body('player_ids')
-    .isArray({ min: 2, max: 8 })
-    .custom((playerIds) => {
-      if (!isValidPlayerCount(playerIds.length)) {
-        throw new Error(`Game must have between ${process.env.MIN_PLAYERS_PER_GAME || 2} and ${process.env.MAX_PLAYERS_PER_GAME || 8} players`);
-      }
-      
+  body().custom((body) => {
+    // Accept either player_ids (array of IDs) or player_names (array of strings)
+    if (!Array.isArray(body.player_ids) && !Array.isArray(body.player_names)) {
+      throw new Error('Either player_ids or player_names is required');
+    }
+    const arr = body.player_ids || body.player_names;
+    if (!Array.isArray(arr) || arr.length < 2) {
+      throw new Error('At least 2 players are required');
+    }
+    if (body.player_ids) {
       // Validate each player ID
-      for (const playerId of playerIds) {
+      for (const playerId of body.player_ids) {
         if (!isValidId(playerId)) {
           throw new Error('Invalid player ID format');
         }
       }
-      
-      // Check for duplicates
-      if (new Set(playerIds).size !== playerIds.length) {
+      if (new Set(body.player_ids).size !== body.player_ids.length) {
         throw new Error('Duplicate player IDs are not allowed');
       }
-      
-      return true;
-    }),
+    }
+    if (body.player_names) {
+      for (const name of body.player_names) {
+        if (typeof name !== 'string') {
+          throw new Error('Player names must be strings');
+        }
+      }
+      // Allow empty names, but still check for duplicates (ignore case/whitespace)
+      const trimmedNames = body.player_names.map(n => n.trim().toLowerCase());
+      if (new Set(trimmedNames).size !== body.player_names.length) {
+        throw new Error('Duplicate player names are not allowed');
+      }
+    }
+    return true;
+  }),
   handleValidationErrors
 ];
 

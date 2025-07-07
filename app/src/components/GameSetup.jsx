@@ -16,7 +16,7 @@ const GameSetup = ({
   // Setup state
   const [selectedGameType, setSelectedGameType] = useState('')
   const [selectedRivalry, setSelectedRivalry] = useState('')
-  const [customPlayers, setCustomPlayers] = useState(['Player 1', 'Player 2'])
+  const [customPlayers, setCustomPlayers] = useState(['', ''])
   const [customWinCondition, setCustomWinCondition] = useState('')
   const [useCustomCondition, setUseCustomCondition] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -26,8 +26,7 @@ const GameSetup = ({
   const favoritedGameTypes = gameTypes.filter(gt => gt.is_favorited)
 
   const addPlayer = () => {
-    const newPlayerNumber = customPlayers.length + 1
-    setCustomPlayers([...customPlayers, `Player ${newPlayerNumber}`])
+    setCustomPlayers([...customPlayers, ''])
   }
 
   const removePlayer = (index) => {
@@ -38,7 +37,7 @@ const GameSetup = ({
 
   const updatePlayerName = (index, name) => {
     const updated = [...customPlayers]
-    updated[index] = name.trim() || `Player ${index + 1}`
+    updated[index] = name // allow empty string
     setCustomPlayers(updated)
   }
 
@@ -51,8 +50,8 @@ const GameSetup = ({
         setCustomPlayers(rivalry.player_names || [])
       }
     } else {
-      // Reset to default players
-      setCustomPlayers(['Player 1', 'Player 2'])
+      // Reset to empty players
+      setCustomPlayers(['', ''])
     }
   }
 
@@ -71,8 +70,9 @@ const GameSetup = ({
       return
     }
 
-    if (customPlayers.length < 2) {
-      setError('At least 2 players are required')
+    // Require at least 2 non-empty player names
+    if (customPlayers.filter(name => name && name.trim()).length < 2) {
+      setError('At least 2 player names must be filled out')
       return
     }
 
@@ -81,10 +81,16 @@ const GameSetup = ({
 
     try {
       const gameType = gameTypes.find(gt => gt.id === selectedGameType)
+      // Only require 2+ non-empty names, let backend handle mapping/creation
+      const enteredNames = customPlayers.filter(name => name && name.trim()).map(name => name.trim())
+      if (enteredNames.length < 2) {
+        setError('At least 2 player names must be filled out')
+        setLoading(false)
+        return
+      }
       const gameData = {
-        sqid,
         game_type_id: selectedGameType,
-        player_names: customPlayers.filter(name => name.trim()),
+        player_names: enteredNames,
         win_condition_type: useCustomCondition ? 
           (customWinCondition ? 'custom' : gameType.win_condition_type) : 
           gameType.win_condition_type,
@@ -93,7 +99,8 @@ const GameSetup = ({
           gameType.win_condition_value
       }
 
-      const response = await fetch(`${__API_URL__}/api/sqids/${sqid}/games`, {
+      // Correct endpoint: /api/${sqid}/games
+      const response = await fetch(`${__API_URL__}/api/${sqid}/games`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -267,7 +274,7 @@ const GameSetup = ({
       <button 
         className="btn btn-primary btn-lg w-full"
         onClick={startGame}
-        disabled={loading || !selectedGameType}
+        disabled={loading || !selectedGameType || customPlayers.filter(name => name && name.trim()).length < 2}
       >
         {loading ? (
           <>
