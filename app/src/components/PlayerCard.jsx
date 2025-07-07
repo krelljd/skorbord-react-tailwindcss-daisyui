@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 
 const PlayerCard = ({ 
   playerId, 
@@ -10,6 +10,8 @@ const PlayerCard = ({
   isWinner 
 }) => {
   const [isUpdating, setIsUpdating] = useState(false)
+  const longPressTimer = useRef(null)
+  const isLongPress = useRef(false)
 
   const handleScoreChange = async (change) => {
     if (disabled || isUpdating) return
@@ -21,6 +23,32 @@ const PlayerCard = ({
       // Small delay to prevent rapid-fire clicks
       setTimeout(() => setIsUpdating(false), 200)
     }
+  }
+
+  // Handle long press for ±10, tap/click for ±1 (works for both touch and mouse)
+  const handlePressStart = (change) => {
+    if (disabled || isUpdating) return
+    
+    isLongPress.current = false
+    longPressTimer.current = setTimeout(() => {
+      isLongPress.current = true
+      handleScoreChange(change * 10)
+    }, 500) // 500ms for long press
+  }
+
+  const handlePressEnd = (change) => {
+    if (disabled || isUpdating) return
+    
+    clearTimeout(longPressTimer.current)
+    // Only execute single increment if it wasn't a long press
+    if (!isLongPress.current) {
+      handleScoreChange(change)
+    }
+  }
+
+  const handlePressCancel = () => {
+    clearTimeout(longPressTimer.current)
+    isLongPress.current = false
   }
 
 
@@ -69,41 +97,35 @@ const PlayerCard = ({
       </div>
 
       {/* Score Control Buttons */}
-      <div className="grid grid-cols-4 gap-2 mt-2">
-        {/* -10 Button */}
+      <div className="grid grid-cols-2 gap-4 mt-4">
+        {/* Minus Button */}
         <button
-          className="score-btn btn-error"
-          onClick={() => handleScoreChange(-10)}
+          className="btn btn-error btn-lg text-4xl font-bold aspect-square w-full max-w-20 mx-auto"
+          onTouchStart={() => handlePressStart(-1)}
+          onTouchEnd={() => handlePressEnd(-1)}
+          onTouchCancel={handlePressCancel}
+          onMouseDown={() => handlePressStart(-1)}
+          onMouseUp={() => handlePressEnd(-1)}
+          onMouseLeave={handlePressCancel}
           disabled={disabled || isUpdating}
+          title="Tap: -1, Long press: -10"
         >
-          -10
+          -
         </button>
 
-        {/* -1 Button */}
+        {/* Plus Button */}
         <button
-          className="score-btn btn-warning"
-          onClick={() => handleScoreChange(-1)}
+          className="btn btn-success btn-lg text-4xl font-bold aspect-square w-full max-w-20 mx-auto"
+          onTouchStart={() => handlePressStart(1)}
+          onTouchEnd={() => handlePressEnd(1)}
+          onTouchCancel={handlePressCancel}
+          onMouseDown={() => handlePressStart(1)}
+          onMouseUp={() => handlePressEnd(1)}
+          onMouseLeave={handlePressCancel}
           disabled={disabled || isUpdating}
+          title="Tap: +1, Long press: +10"
         >
-          -1
-        </button>
-
-        {/* +1 Button */}
-        <button
-          className="score-btn btn-success"
-          onClick={() => handleScoreChange(1)}
-          disabled={disabled || isUpdating}
-        >
-          +1
-        </button>
-
-        {/* +10 Button */}
-        <button
-          className="score-btn btn-info"
-          onClick={() => handleScoreChange(10)}
-          disabled={disabled || isUpdating}
-        >
-          +10
+          +
         </button>
       </div>
 
