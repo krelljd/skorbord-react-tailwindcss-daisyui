@@ -41,13 +41,22 @@ const GameSetup = ({
     setCustomPlayers(updated)
   }
 
+  // Helper to get player names from rivalry (prefer .players, fallback to .player_names)
+  const getRivalryPlayerNames = (rivalry) => {
+    if (rivalry.players && Array.isArray(rivalry.players)) {
+      return rivalry.players.map(p => p.name)
+    }
+    return rivalry.player_names || []
+  }
+
+  // Order-agnostic rivalry selection (future-proofing, but dropdown uses id)
   const selectRivalry = (rivalryId) => {
     setSelectedRivalry(rivalryId)
     if (rivalryId) {
       const rivalry = rivalries.find(r => r.id === rivalryId)
       if (rivalry) {
-        // Populate players from rivalry
-        setCustomPlayers(rivalry.player_names || [])
+        // Populate players from rivalry (API order)
+        setCustomPlayers(getRivalryPlayerNames(rivalry))
       }
     } else {
       // Reset to empty players
@@ -226,11 +235,11 @@ const GameSetup = ({
               value={selectedRivalry}
               onChange={(e) => selectRivalry(e.target.value)}
             >
-              <option value="">Custom players...</option>
+              <option value="">Use players below...</option>
               {rivalries.map(rivalry => (
                 <option key={rivalry.id} value={rivalry.id}>
-                  {(rivalry.player_names || []).join(' vs ')}
-                  {' '}({rivalry.total_games} games)
+                  {(rivalry.players ? rivalry.players.map(p => p.name) : (rivalry.player_names || [])).join(' vs ')}
+                  {' '}({rivalry.total_games} games played)
                 </option>
               ))}
             </select>

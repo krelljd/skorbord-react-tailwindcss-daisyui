@@ -31,7 +31,7 @@ router.get('/', async (req, res, next) => {
       ORDER BY rs.total_games DESC, r.created_at DESC
     `, [sqid]);
     
-    // Get players for each rivalry
+    // Get players for each rivalry and add player_names array
     for (const rivalry of rivalries) {
       const players = await db.query(`
         SELECT 
@@ -42,10 +42,10 @@ router.get('/', async (req, res, next) => {
         WHERE rp.rivalry_id = ?
         ORDER BY p.name ASC
       `, [rivalry.id]);
-      
       rivalry.players = players;
+      // Add player_names array for frontend dropdowns
+      rivalry.player_names = players.map(player => player.name);
     }
-    
     res.json(createResponse(true, rivalries));
   } catch (error) {
     next(error);
