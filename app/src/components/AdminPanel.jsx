@@ -369,7 +369,10 @@ const AdminPanel = ({
                         {gameType.is_favorited && <span>⭐</span>}
                       </h4>
                       <p className="text-sm opacity-75">
-                        {gameType.win_condition_type === 'win' ? 'Win at' : 'Lose at'} {gameType.win_condition_value}
+                        {!gameType.is_win_condition ?
+                          `Lose at ${gameType.loss_condition}` :
+                          `Win at ${gameType.win_condition}`
+                        }
                       </p>
                     </div>
                     
