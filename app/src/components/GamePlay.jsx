@@ -215,11 +215,15 @@ const GamePlay = ({
     setError('')
 
     try {
-      const response = await fetch(`${__API_URL__}/api/${sqid}/games/${game.id}/finalize`, {
-        method: 'POST',
+      // Find the winner's player_id if available
+      const winnerId = winner?.player_id || null;
+      const endedAt = new Date().toISOString();
+      const response = await fetch(`${__API_URL__}/api/${sqid}/games/${game.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({ finalized: true, ended_at: endedAt, winner_id: winnerId })
       })
 
       if (!response.ok) {
@@ -228,15 +232,15 @@ const GamePlay = ({
       }
 
       const result = await response.json()
-      setCurrentGame(result.data.game)
-      
+      setCurrentGame(result.data)
+
       // Emit socket event
       if (socket) {
         socket.emit('game-finalized', {
           sqid,
-          game: result.data.game,
-          winner: result.data.winner,
-          rivalry_stats: result.data.rivalry_stats
+          game: result.data,
+          winner: winner,
+          // rivalry_stats: result.data.rivalry_stats // Add if backend returns this
         })
       }
 

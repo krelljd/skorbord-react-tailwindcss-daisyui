@@ -49,9 +49,9 @@ const CardApp = () => {
 
   const loadInitialData = async () => {
     try {
-      // Load game types, players, and rivalries
+      // Always fetch global game types, but include sqid for favorited status
       const [gameTypesRes, playersRes, rivalriesRes] = await Promise.all([
-        fetch(`${__API_URL__}/api/game_types`),
+        fetch(`${__API_URL__}/api/game_types?sqid=${encodeURIComponent(sqid)}`),
         fetch(`${__API_URL__}/api/${sqid}/players`),
         fetch(`${__API_URL__}/api/${sqid}/rivalries`)
       ])
@@ -66,6 +66,7 @@ const CardApp = () => {
         rivalriesRes.json()
       ])
 
+      // gameTypes is always global, but is_favorited is per sqid
       setGameTypes(gameTypesData.data || [])
       setPlayers(playersData.data || [])
       setRivalries(rivalriesData.data || [])

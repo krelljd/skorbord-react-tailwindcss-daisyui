@@ -13,16 +13,34 @@ const router = express.Router();
  */
 router.get('/', async (req, res, next) => {
   try {
-    const gameTypes = await db.query(`
-      SELECT 
-        gt.*,
-        COUNT(g.id) as games_played
-      FROM game_types gt
-      LEFT JOIN games g ON gt.id = g.game_type_id
-      GROUP BY gt.id, gt.name, gt.description, gt.win_condition, gt.loss_condition, gt.is_win_condition, gt.created_at
-      ORDER BY gt.name ASC
-    `);
-    
+    // Accept sqid as a query param
+    const { sqid } = req.query;
+    let gameTypes;
+    if (sqid) {
+      gameTypes = await db.query(`
+        SELECT 
+          gt.*,
+          COUNT(g.id) as games_played,
+          CASE WHEN f.sqid_id IS NOT NULL THEN 1 ELSE 0 END as is_favorited
+        FROM game_types gt
+        LEFT JOIN games g ON gt.id = g.game_type_id
+        LEFT JOIN favorites f ON gt.id = f.game_type_id AND f.sqid_id = ?
+        GROUP BY gt.id, gt.name, gt.description, gt.win_condition, gt.loss_condition, gt.is_win_condition, gt.created_at, f.sqid_id
+        ORDER BY gt.name ASC
+      `, [sqid]);
+      // Convert is_favorited to boolean
+      gameTypes = gameTypes.map(gt => ({ ...gt, is_favorited: !!gt.is_favorited }));
+    } else {
+      gameTypes = await db.query(`
+        SELECT 
+          gt.*,
+          COUNT(g.id) as games_played
+        FROM game_types gt
+        LEFT JOIN games g ON gt.id = g.game_type_id
+        GROUP BY gt.id, gt.name, gt.description, gt.win_condition, gt.loss_condition, gt.is_win_condition, gt.created_at
+        ORDER BY gt.name ASC
+      `);
+    }
     res.json(createResponse(true, gameTypes));
   } catch (error) {
     next(error);

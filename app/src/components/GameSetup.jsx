@@ -3,9 +3,9 @@ import { useConnection } from '../contexts/ConnectionContext.jsx'
 
 const GameSetup = ({ 
   sqid, 
-  gameTypes, 
-  players, 
-  rivalries, 
+  gameTypes = [], 
+  players = [], 
+  rivalries = [], 
   setCurrentGame, 
   setCurrentView,
   setPlayers,
@@ -135,7 +135,7 @@ const GameSetup = ({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Setup New Game</h2>
+        <h2 className="text-2xl font-bold mb-2">New Game</h2>
         <p className="text-sm opacity-75">Choose a game type and players to begin</p>
       </div>
 
@@ -162,9 +162,7 @@ const GameSetup = ({
             <option value="">Select a game type...</option>
             {gameTypes.map(gameType => (
               <option key={gameType.id} value={gameType.id}>
-                {gameType.name} 
-                {gameType.is_favorited ? ' ⭐' : ''}
-                {' '}({gameType.win_condition_type === 'win' ? 'Win at' : 'Lose at'} {gameType.win_condition_value})
+                {gameType.name}{gameType.is_favorited ? ' ⭐' : ''}
               </option>
             ))}
           </select>
@@ -231,7 +229,7 @@ const GameSetup = ({
               <option value="">Custom players...</option>
               {rivalries.map(rivalry => (
                 <option key={rivalry.id} value={rivalry.id}>
-                  {rivalry.player_names.join(' vs ')}
+                  {(rivalry.player_names || []).join(' vs ')}
                   {' '}({rivalry.total_games} games)
                 </option>
               ))}

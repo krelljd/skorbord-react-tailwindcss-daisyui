@@ -87,9 +87,12 @@ const AdminPanel = ({
         throw new Error(errorData.message || 'Failed to update favorite status')
       }
 
-      setGameTypes(prev => prev.map(gt =>
-        gt.id === gameTypeId ? { ...gt, is_favorited: !currentStatus } : gt
-      ))
+      // After toggling, re-fetch game types to get correct is_favorited for this sqid
+      const gameTypesRes = await fetch(`${__API_URL__}/api/game_types?sqid=${encodeURIComponent(sqid)}`)
+      if (gameTypesRes.ok) {
+        const gameTypesData = await gameTypesRes.json()
+        setGameTypes(gameTypesData.data || [])
+      }
       setSuccess(`Game type ${!currentStatus ? 'favorited' : 'unfavorited'}!`)
 
     } catch (err) {
@@ -241,7 +244,7 @@ const AdminPanel = ({
         >
           ← Back
         </button>
-        <h2 className="text-xl font-bold">Admin Panel</h2>
+        <h2 className="text-xl font-bold">Admin</h2>
       </div>
 
       {/* Messages */}
@@ -309,7 +312,7 @@ const AdminPanel = ({
                   </select>
                   <input 
                     type="number"
-                    className="input input-bordered w-24"
+                    className="input input-bordered w-8"
                     placeholder="100"
                     value={newGameType.win_condition_value}
                     onChange={(e) => setNewGameType(prev => ({ ...prev, win_condition_value: e.target.value }))}
@@ -356,10 +359,11 @@ const AdminPanel = ({
                     
                     <div className="flex gap-2">
                       <button 
-                        className={`btn btn-sm ${gameType.is_favorited ? 'btn-warning' : 'btn-outline'}`}
+                        className={`btn btn-sm transition-all duration-200 ${gameType.is_favorited ? 'btn-warning ring-2 ring-warning ring-offset-2 font-bold scale-110' : 'btn-outline'}`}
                         onClick={() => toggleGameTypeFavorite(gameType.id, gameType.is_favorited)}
                         disabled={loading}
                         title={gameType.is_favorited ? 'Remove from favorites' : 'Add to favorites'}
+                        aria-pressed={gameType.is_favorited}
                       >
                         {gameType.is_favorited ? '★' : '☆'}
                       </button>
