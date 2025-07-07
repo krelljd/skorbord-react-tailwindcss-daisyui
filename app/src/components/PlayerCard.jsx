@@ -21,7 +21,7 @@ const PlayerCard = ({
       await onScoreChange(playerId, change)
     } finally {
       // Small delay to prevent rapid-fire clicks
-      setTimeout(() => setIsUpdating(false), 200)
+      setTimeout(() => setIsUpdating(false), 100)
     }
   }
 

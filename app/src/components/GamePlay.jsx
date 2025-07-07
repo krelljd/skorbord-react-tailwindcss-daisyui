@@ -118,22 +118,28 @@ const GamePlay = ({
     let gameWinner = null
 
     if (isWinCondition) {
-      // First player to reach or exceed the win condition wins
-      gameWinner = stats.find(stat => stat.score >= winCondition)
+      // For win conditions: first player to reach or exceed the win condition wins
+      // If multiple players reach it, highest score wins
+      const qualifiedPlayers = stats.filter(stat => stat.score >= winCondition)
+      if (qualifiedPlayers.length > 0) {
+        gameWinner = qualifiedPlayers.reduce((max, current) =>
+          current.score > max.score ? current : max
+        )
+      }
     } else {
-      // If any player meets or exceeds the loss condition, the winner is the player with the lowest score
+      // For loss conditions: if any player meets or exceeds the loss condition,
+      // the winner is the player with the lowest score (among all players)
       const anyLoser = stats.some(stat => stat.score >= winCondition)
       if (anyLoser) {
-        // Winner is the player with the lowest score (among all players)
         gameWinner = stats.reduce((min, current) =>
           current.score < min.score ? current : min
         )
       }
     }
 
-    if (gameWinner && !winner) {
-      setWinner(gameWinner)
-    }
+    // Always update winner state to reflect current game state
+    // This allows for dynamic winner changes as scores are updated
+    setWinner(gameWinner)
   }
 
   // Update a player's score by sending only the delta to the backend
