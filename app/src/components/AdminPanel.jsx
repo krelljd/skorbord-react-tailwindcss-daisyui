@@ -57,9 +57,25 @@ const AdminPanel = ({
       }
 
       const result = await response.json()
-      setGameTypes(prev => [...prev, result.data])
+      // Automatically favorite the new game type for this sqid
+      const favoriteRes = await fetch(`${__API_URL__}/api/${sqid}/game_types/${result.data.id}/favorite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      if (!favoriteRes.ok) {
+        const errorData = await favoriteRes.json()
+        throw new Error(errorData.message || 'Failed to favorite new game type')
+      }
+      // Re-fetch game types to get correct is_favorited
+      const gameTypesRes = await fetch(`${__API_URL__}/api/game_types?sqid=${encodeURIComponent(sqid)}`)
+      if (gameTypesRes.ok) {
+        const gameTypesData = await gameTypesRes.json()
+        setGameTypes(gameTypesData.data || [])
+      }
       setNewGameType({ name: '', win_condition_type: 'win', win_condition_value: 100 })
-      setSuccess('Game type added successfully!')
+      setSuccess('Game type added!')
 
     } catch (err) {
       console.error('Failed to add game type:', err)
