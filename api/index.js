@@ -23,7 +23,7 @@ import favoritesRoutes from './routes/favorites.js';
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
 import { validateSquid, validateCreateSquid } from './middleware/validation.js';
-import { socketAuthMiddleware } from './middleware/socketAuth.js';
+// import { socketAuthMiddleware } from './middleware/socketAuth.js';
 
 // Import utilities  
 import { createResponse, isValidId } from './utils/helpers.js';
@@ -45,9 +45,9 @@ const httpServer = createServer(app);
 // Configure Socket.IO
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' 
-      ? ['https://skorbord.app'] 
-      : ['http://localhost:3000', 'http://localhost:2424'],
+    origin: process.env.NODE_ENV === 'production'
+      ? ['https://skorbord.app']
+      : ['http://localhost:2424'],
     methods: ['GET', 'POST'],
     credentials: true
   },
@@ -86,9 +86,9 @@ app.use(limiter);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://skorbord.app'] 
-    : ['http://localhost:3000', 'http://localhost:2424'],
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://skorbord.app']
+    : ['http://localhost:2424'],
   credentials: true
 }));
 
@@ -119,6 +119,12 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/game_types', gameTypeRoutes);
+
+// Middleware to attach Socket.IO instance to requests
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 // Sqid creation route (without validation middleware)
 app.post('/api/sqids/:sqid', validateCreateSquid, async (req, res, next) => {
@@ -167,7 +173,7 @@ app.use('/api/:sqid/rivalries', validateSquid, rivalryRoutes);
 app.use('/api/:sqid/game_types/:gameTypeId/favorite', validateSquid, favoritesRoutes);
 
 // Socket.IO middleware and handlers
-io.use(socketAuthMiddleware);
+// io.use(socketAuthMiddleware);
 io.on('connection', (socket) => handleConnection(io, socket));
 
 // Error handling middleware (must be last)
@@ -182,15 +188,14 @@ app.use('*', (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 2424;
+const PORT = process.env.PORT || 2525;
 
 httpServer.listen(PORT, () => {
   console.log(`🚀 Skorbord API server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV}`);
   console.log(`🗄️ Database: ${process.env.DATABASE_URL}`);
-  
   if (process.env.NODE_ENV === 'development') {
-    console.log(`🌐 Server accessible at: http://localhost:${PORT}`);
+    console.log(`🌐 Server accessible at: http://localhost:2525`);
   }
 });
 

@@ -25,22 +25,24 @@ const CardApp = () => {
       setLoading(true)
       setError(null)
 
-      // Join the sqid room
+      // Join the sqid room (now required for all connections)
       socket.emit('join-sqid', sqid)
       
       // Load initial data
       loadInitialData()
 
       // Socket event listeners for real-time updates
-      socket.on('game-updated', handleGameUpdate)
-      socket.on('player-updated', handlePlayerUpdate)
-      socket.on('rivalry-updated', handleRivalryUpdate)
+      socket.on('game_updated', handleGameUpdate)
+      socket.on('game_started', handleGameStarted)
+      socket.on('player_updated', handlePlayerUpdate)
+      socket.on('rivalry_updated', handleRivalryUpdate)
       socket.on('error', handleSocketError)
 
       return () => {
-        socket.off('game-updated', handleGameUpdate)
-        socket.off('player-updated', handlePlayerUpdate)
-        socket.off('rivalry-updated', handleRivalryUpdate)
+        socket.off('game_updated', handleGameUpdate)
+        socket.off('game_started', handleGameStarted)
+        socket.off('player_updated', handlePlayerUpdate)
+        socket.off('rivalry_updated', handleRivalryUpdate)
         socket.off('error', handleSocketError)
         socket.emit('leave-sqid', sqid)
       }
@@ -99,6 +101,11 @@ const CardApp = () => {
       // Reload rivalries to get updated stats
       loadRivalries()
     }
+  }
+
+  const handleGameStarted = (gameData) => {
+    // When a game is started, we should reload the initial data to get the new game
+    loadInitialData()
   }
 
   const handlePlayerUpdate = (playerData) => {

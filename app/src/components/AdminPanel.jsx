@@ -155,7 +155,7 @@ const AdminPanel = ({
     clearMessages()
 
     try {
-      const response = await fetch(`${__API_URL__}/api/players`, {
+      const response = await fetch(`${__API_URL__}/api/${sqid}/players`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -193,7 +193,7 @@ const AdminPanel = ({
     clearMessages()
 
     try {
-      const response = await fetch(`${__API_URL__}/api/players/${playerId}`, {
+      const response = await fetch(`${__API_URL__}/api/${sqid}/players/${playerId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -231,7 +231,7 @@ const AdminPanel = ({
     clearMessages()
 
     try {
-      const response = await fetch(`${__API_URL__}/api/players/${playerId}`, {
+      const response = await fetch(`${__API_URL__}/api/${sqid}/players/${playerId}`, {
         method: 'DELETE'
       })
 

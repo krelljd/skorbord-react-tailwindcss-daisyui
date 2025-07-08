@@ -5,15 +5,43 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3000,
+    port: 2424,
     host: true,
-    strictPort: true,
-    cors: true
+    strictPort: false,
+    cors: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:2525',
+        changeOrigin: true,
+        secure: false,
+        timeout: 10000,
+        proxyTimeout: 10000
+      },
+      '/socket.io': {
+        target: 'http://localhost:2525',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        timeout: 0,
+        proxyTimeout: 0,
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('Proxy error:', err)
+          })
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('Sending Request to the Target:', req.method, req.url)
+          })
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log('Received Response from the Target:', proxyRes.statusCode, req.url)
+          })
+        }
+      }
+    }
   },
   preview: {
-    port: 3000,
+    port: 2424,
     host: true,
-    strictPort: true,
+    strictPort: false,
     cors: true
   },
   build: {

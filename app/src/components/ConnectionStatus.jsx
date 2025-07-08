@@ -1,7 +1,7 @@
 import { useConnection } from '../contexts/ConnectionContext.jsx'
 
 const ConnectionStatus = () => {
-  const { isConnected, connectionError, isReconnecting } = useConnection()
+  const { isConnected, connectionError, isReconnecting, connectionAttempts } = useConnection()
 
   if (isConnected && !connectionError) {
     return (
@@ -15,6 +15,14 @@ const ConnectionStatus = () => {
     return (
       <div className="connection-indicator badge-warning">
         🔄 Reconnecting...
+      </div>
+    )
+  }
+
+  if (connectionAttempts > 0 && connectionAttempts < 3) {
+    return (
+      <div className="connection-indicator badge-warning">
+        🔄 Connecting (attempt {connectionAttempts})...
       </div>
     )
   }

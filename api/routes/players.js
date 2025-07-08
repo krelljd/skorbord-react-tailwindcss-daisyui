@@ -4,7 +4,7 @@ import {
   validatePlayerAccess 
 } from '../middleware/validation.js';
 import { createResponse, generateUUID } from '../utils/helpers.js';
-import { ConflictError } from '../middleware/errorHandler.js';
+import { ValidationError, ConflictError } from '../middleware/errorHandler.js';
 import db from '../db/database.js';
 
 const router = express.Router({ mergeParams: true });
@@ -67,6 +67,14 @@ router.post('/', validateCreatePlayer, async (req, res, next) => {
       [playerData.id, playerData.sqid_id, playerData.name, playerData.created_at]
     );
     
+    // Broadcast player created event
+    req.io?.to(`/sqid/${sqid}`).emit('player_updated', {
+      type: 'player_created',
+      player: playerData,
+      sqidId: sqid,
+      timestamp: new Date().toISOString()
+    });
+    
     res.status(201).json(createResponse(true, playerData));
   } catch (error) {
     next(error);
@@ -123,6 +131,49 @@ router.get('/:playerId', validatePlayerAccess, async (req, res, next) => {
 });
 
 /**
+ * PUT /api/:sqid/players/:playerId - Update player details
+ */
+router.put('/:playerId', validatePlayerAccess, async (req, res, next) => {
+  try {
+    const { playerId, sqid } = req.params;
+    const { name } = req.body;
+    
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      throw new ValidationError('Player name is required');
+    }
+    
+    const trimmedName = name.trim();
+    if (trimmedName.length > 64) {
+      throw new ValidationError('Player name must be 64 characters or less');
+    }
+    
+    // Update player
+    await db.run(
+      'UPDATE players SET name = ? WHERE id = ?',
+      [trimmedName, playerId]
+    );
+    
+    // Get updated player data
+    const updatedPlayer = await db.get(
+      'SELECT * FROM players WHERE id = ?',
+      [playerId]
+    );
+    
+    // Broadcast player updated event
+    req.io?.to(`/sqid/${sqid}`).emit('player_updated', {
+      type: 'player_updated',
+      player: updatedPlayer,
+      sqidId: sqid,
+      timestamp: new Date().toISOString()
+    });
+    
+    res.json(createResponse(true, updatedPlayer));
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * DELETE /api/:sqid/players/:playerId - Remove player from Sqid
  */
 router.delete('/:playerId', validatePlayerAccess, async (req, res, next) => {
@@ -141,6 +192,14 @@ router.delete('/:playerId', validatePlayerAccess, async (req, res, next) => {
     
     // Delete player (cascade will handle related records)
     await db.run('DELETE FROM players WHERE id = ?', [playerId]);
+    
+    // Broadcast player deleted event
+    req.io?.to(`/sqid/${req.params.sqid}`).emit('player_updated', {
+      type: 'player_deleted',
+      playerId: playerId,
+      sqidId: req.params.sqid,
+      timestamp: new Date().toISOString()
+    });
     
     res.json(createResponse(true, { message: 'Player deleted successfully' }));
   } catch (error) {

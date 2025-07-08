@@ -11,7 +11,9 @@ export function socketAuthMiddleware(socket, next) {
   }
   try {
     const { sqid } = socket.handshake.auth;
+    console.log('🔐 Socket auth check:', { sqid, socketId: socket.id });
     if (!sqid || !isValidId(sqid)) {
+      console.error('❌ Invalid or missing Sqid:', sqid);
       next(new Error('Invalid or missing Sqid'));
       return;
     }
@@ -19,9 +21,11 @@ export function socketAuthMiddleware(socket, next) {
     socket.sqid = sqid;
     // Join the socket to the sqid room for targeted broadcasts
     socket.join(`/sqid/${sqid}`);
+    console.log('✅ Socket authenticated successfully:', { sqid, socketId: socket.id });
     next();
     return;
   } catch (error) {
+    console.error('❌ Socket auth error:', error);
     next(error);
     return;
   }

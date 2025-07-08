@@ -1,0 +1,10 @@
+{
+  "type": "module",
+  "name": "skorbord-tests",
+  "version": "1.0.0",
+  "description": "Test scripts for Skorbord application",
+  "private": true,
+  "dependencies": {
+    "socket.io-client": "^4.8.1"
+  }
+}

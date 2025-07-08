@@ -17,68 +17,126 @@ export const ConnectionProvider = ({ children, sqid }) => {
   const [isConnected, setIsConnected] = useState(false)
   const [connectionError, setConnectionError] = useState(null)
   const [isReconnecting, setIsReconnecting] = useState(false)
+  const [connectionAttempts, setConnectionAttempts] = useState(0)
+
+  const createSocket = (socketUrl, options = {}) => {
+    console.log('🔌 Creating socket connection to:', socketUrl)
+    return io(socketUrl, {
+      path: '/socket.io',
+      transports: ['websocket', 'polling'],
+      timeout: 20000,
+      retries: 5,
+      ackTimeout: 10000,
+      forceNew: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      maxReconnectionAttempts: 10,
+      upgrade: true,
+      rememberUpgrade: false,
+      ...options
+    })
+  }
 
   useEffect(() => {
     if (!sqid) return
-    // Initialize socket connection with sqid in auth
-    const newSocket = io(__API_URL__, {
-      transports: ['websocket', 'polling'],
-      timeout: 20000,
-      retries: 3,
-      ackTimeout: 10000,
-      forceNew: true,
-      auth: { sqid }
-    })
-
-    // Connection event handlers
-    newSocket.on('connect', () => {
-      console.log('Socket connected:', newSocket.id)
-      setIsConnected(true)
-      setConnectionError(null)
-      setIsReconnecting(false)
-    })
-
-    newSocket.on('disconnect', (reason, details) => {
-      console.log('Socket disconnected:', reason, details)
-      setIsConnected(false)
-      if (reason === 'io server disconnect') {
-        // Server disconnected, need to reconnect manually
-        newSocket.connect()
+    
+    let newSocket = null
+    
+    const tryConnection = (attemptNumber = 0) => {
+      if (attemptNumber >= 2) {
+        console.error('❌ All connection attempts failed')
+        setConnectionError('Unable to connect to server')
+        setIsReconnecting(false)
+        return
       }
-    })
+      
+      // First try: Use Vite proxy (development) or production URL
+      // Second try: Direct connection to API server
+      let socketUrl
+      let options = {}
+      
+      if (attemptNumber === 0) {
+        socketUrl = process.env.NODE_ENV === 'production' ? __API_URL__ : '/'
+        console.log('🔌 Attempt', attemptNumber + 1, '- Connecting via proxy/production URL:', socketUrl)
+      } else {
+        socketUrl = process.env.NODE_ENV === 'production' ? __API_URL__ : 'http://localhost:2525'
+        console.log('🔌 Attempt', attemptNumber + 1, '- Direct connection to API server:', socketUrl)
+        options = {
+          reconnection: false, // Don't auto-reconnect on direct connection
+          timeout: 10000 // Shorter timeout for direct connection
+        }
+      }
+      
+      newSocket = createSocket(socketUrl, options)
+      setConnectionAttempts(attemptNumber + 1)
+      
+      // Join sqid room after connect
+      newSocket.on('connect', () => {
+        console.log('✅ Socket connected:', newSocket.id)
+        newSocket.emit('join-sqid', sqid)
+        setIsConnected(true)
+        setConnectionError(null)
+        setIsReconnecting(false)
+        setConnectionAttempts(0)
+      })
 
-    newSocket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error)
-      setConnectionError(error.message || 'Connection failed')
-      setIsConnected(false)
-    })
+      newSocket.on('disconnect', (reason, details) => {
+        console.log('Socket disconnected:', reason, details)
+        setIsConnected(false)
+        if (reason === 'io server disconnect') {
+          // Server disconnected, need to reconnect manually
+          newSocket.connect()
+        }
+      })
 
-    newSocket.on('reconnect', (attemptNumber) => {
-      console.log('Socket reconnected after', attemptNumber, 'attempts')
-      setIsReconnecting(false)
-    })
+      newSocket.on('connect_error', (error) => {
+        console.error('Socket connection error (attempt', attemptNumber + 1, '):', error)
+        setIsConnected(false)
+        
+        // Clean up current socket before trying next attempt
+        newSocket.close()
+        
+        // Try next connection method
+        setTimeout(() => {
+          tryConnection(attemptNumber + 1)
+        }, 1000)
+      })
 
-    newSocket.on('reconnect_attempt', (attemptNumber) => {
-      console.log('Socket reconnect attempt:', attemptNumber)
-      setIsReconnecting(true)
-    })
+      newSocket.on('reconnect', (attemptNumber) => {
+        console.log('Socket reconnected after', attemptNumber, 'attempts')
+        setIsReconnecting(false)
+        setConnectionError(null)
+      })
 
-    newSocket.on('reconnect_error', (error) => {
-      console.error('Socket reconnect error:', error)
-      setConnectionError('Reconnection failed')
-    })
+      newSocket.on('reconnect_attempt', (attemptNumber) => {
+        console.log('Socket reconnect attempt:', attemptNumber)
+        setIsReconnecting(true)
+      })
 
-    newSocket.on('reconnect_failed', () => {
-      console.error('Socket reconnect failed')
-      setConnectionError('Unable to reconnect')
-      setIsReconnecting(false)
-    })
+      newSocket.on('reconnect_error', (error) => {
+        console.error('Socket reconnect error:', error)
+        setConnectionError('Reconnection failed')
+      })
 
-    setSocket(newSocket)
+      newSocket.on('reconnect_failed', () => {
+        console.error('Socket reconnect failed')
+        setConnectionError('Unable to reconnect')
+        setIsReconnecting(false)
+      })
+
+      setSocket(newSocket)
+    }
+    
+    // Start connection attempts
+    tryConnection()
 
     // Cleanup on unmount
     return () => {
-      newSocket.close()
+      if (newSocket) {
+        newSocket.close()
+      }
     }
   }, [sqid])
 
@@ -86,7 +144,8 @@ export const ConnectionProvider = ({ children, sqid }) => {
     socket,
     isConnected,
     connectionError,
-    isReconnecting
+    isReconnecting,
+    connectionAttempts
   }
 
   return (

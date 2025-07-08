@@ -23,6 +23,7 @@ const GamePlay = ({
   // Score tallies for mini-sessions (3 second fade)
   const [scoreTallies, setScoreTallies] = useState({}) // playerId -> { total, timeoutId }
   const tallyTimeouts = useRef({})
+  const pendingUpdates = useRef(new Set()) // Track pending score updates to avoid double-counting
 
   // Load game stats on mount
   useEffect(() => {
@@ -43,7 +44,7 @@ const GamePlay = ({
   useEffect(() => {
     if (socket && game?.id) {
       socket.on('score_update', handleScoreUpdate)
-      socket.on('game-completed', handleGameCompleted)
+      socket.on('game_completed', handleGameCompleted)
       
       return () => {
         socket.off('score_update', handleScoreUpdate)
@@ -71,8 +72,10 @@ const GamePlay = ({
       // Handle score tally mini-session
       const playerId = data.player_id
       const change = data.score_change
+      const updateKey = `${playerId}-${change}-${Date.now()}`
       
-      if (change !== 0) {
+      // Only update tally if this isn't a pending update from this client
+      if (change !== 0 && !pendingUpdates.current.has(`${playerId}-${change}`)) {
         // Clear existing timeout for this player
         if (tallyTimeouts.current[playerId]) {
           clearTimeout(tallyTimeouts.current[playerId])
@@ -98,6 +101,15 @@ const GamePlay = ({
           delete tallyTimeouts.current[playerId]
         }, 3000)
       }
+      
+      // Clean up any matching pending updates
+      const toRemove = []
+      for (const pending of pendingUpdates.current) {
+        if (pending.startsWith(`${playerId}-${change}`)) {
+          toRemove.push(pending)
+        }
+      }
+      toRemove.forEach(key => pendingUpdates.current.delete(key))
     }
   }
 
@@ -147,6 +159,10 @@ const GamePlay = ({
     setLoading(true)
     setError('')
 
+    // Track this update to prevent double-counting when we receive the WebSocket event
+    const updateKey = `${playerId}-${change}`
+    pendingUpdates.current.add(updateKey)
+
     // Update tally locally for immediate feedback
     if (change !== 0) {
       if (tallyTimeouts.current[playerId]) {
@@ -194,20 +210,14 @@ const GamePlay = ({
       // Update local state with backend's authoritative stats
       setGameStats(result.data || [])
 
-      // Emit socket event for real-time updates
-      if (socket) {
-        socket.emit('score-update', {
-          sqid,
-          game_id: game.id,
-          player_id: playerId,
-          score_change: change,
-          stats: result.data
-        })
-      }
+      // Note: We don't emit socket event here because the backend already broadcasts it
+      // The pendingUpdates tracking prevents double-counting the tally
 
     } catch (err) {
       console.error('Failed to update score:', err)
       setError(err.message || 'Failed to update score')
+      // Remove the pending update on error
+      pendingUpdates.current.delete(updateKey)
     } finally {
       setLoading(false)
     }
@@ -242,7 +252,7 @@ const GamePlay = ({
 
       // Emit socket event
       if (socket) {
-        socket.emit('game-finalized', {
+        socket.emit('game_finalized', {
           sqid,
           game: result.data,
           winner: winner,
