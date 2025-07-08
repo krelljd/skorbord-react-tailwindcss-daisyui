@@ -37,9 +37,11 @@ router.get('/active', async (req, res, next) => {
     if (!game) {
       return res.status(404).json(createResponse(false, null, 'No active game found'));
     }
-    // Add computed win_condition_type and win_condition_value for frontend compatibility
-    game.win_condition_type = game.is_win_condition ? 'win' : 'lose';
-    game.win_condition_value = game.is_win_condition ? game.win_condition : game.loss_condition;
+    // Use custom win condition if available, otherwise fallback to game type
+    if (!game.win_condition_type || !game.win_condition_value) {
+      game.win_condition_type = game.is_win_condition ? 'win' : 'lose';
+      game.win_condition_value = game.is_win_condition ? game.win_condition : game.loss_condition;
+    }
     res.json(createResponse(true, game));
   } catch (error) {
     next(error);
@@ -110,7 +112,7 @@ router.get('/', async (req, res, next) => {
 router.post('/', validateCreateGame, async (req, res, next) => {
   try {
     const { sqid } = req.params;
-    const { game_type_id, player_ids, player_names } = req.body;
+    const { game_type_id, player_ids, player_names, win_condition_type, win_condition_value } = req.body;
 
     // Validate game type exists
     const gameType = await db.get(
@@ -158,19 +160,35 @@ router.post('/', validateCreateGame, async (req, res, next) => {
 
     // Create game within a transaction
     const result = await db.transaction(async (db) => {
+      // Delete any existing non-finalized games for this sqid
+      await db.run('DELETE FROM games WHERE sqid_id = ? AND finalized = false', [sqid]);
+
       const gameId = generateUUID();
+      
+      // Determine win condition values
+      let finalWinConditionType = win_condition_type;
+      let finalWinConditionValue = win_condition_value;
+      
+      if (!finalWinConditionType || !finalWinConditionValue) {
+        // Use default from game type
+        finalWinConditionType = gameType.is_win_condition ? 'win' : 'lose';
+        finalWinConditionValue = gameType.is_win_condition ? gameType.win_condition : gameType.loss_condition;
+      }
+
       const gameData = {
         id: gameId,
         sqid_id: sqid,
         game_type_id: game_type_id,
         started_at: new Date().toISOString(),
-        finalized: false
+        finalized: false,
+        win_condition_type: finalWinConditionType,
+        win_condition_value: finalWinConditionValue
       };
 
       // Insert game
       await db.run(
-        'INSERT INTO games (id, sqid_id, game_type_id, started_at, finalized) VALUES (?, ?, ?, ?, ?)',
-        [gameData.id, gameData.sqid_id, gameData.game_type_id, gameData.started_at, gameData.finalized]
+        'INSERT INTO games (id, sqid_id, game_type_id, started_at, finalized, win_condition_type, win_condition_value) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [gameData.id, gameData.sqid_id, gameData.game_type_id, gameData.started_at, gameData.finalized, gameData.win_condition_type, gameData.win_condition_value]
       );
 
       // Insert initial stats for each player (score 0)
@@ -227,8 +245,10 @@ router.get('/:gameId', validateGameAccess, async (req, res, next) => {
 
     // Add computed win_condition_type and win_condition_value for frontend compatibility
     if (game) {
-      game.win_condition_type = game.is_win_condition ? 'win' : 'lose';
-      game.win_condition_value = game.is_win_condition ? game.win_condition : game.loss_condition;
+      if (!game.win_condition_type || !game.win_condition_value) {
+        game.win_condition_type = game.is_win_condition ? 'win' : 'lose';
+        game.win_condition_value = game.is_win_condition ? game.win_condition : game.loss_condition;
+      }
     }
 
     // Get players and their scores

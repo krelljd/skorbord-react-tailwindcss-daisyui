@@ -157,6 +157,12 @@ const CardApp = () => {
     setCurrentView('setup')
   }
 
+  const viewCurrentGame = () => {
+    if (currentGame) {
+      setCurrentView('playing')
+    }
+  }
+
   const viewRivalryStats = () => {
     setCurrentView('rivalry-stats')
   }
@@ -213,6 +219,9 @@ const CardApp = () => {
               </svg>
             </div>
             <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+              {currentGame && !currentGame.finalized && (
+                <li><a onClick={viewCurrentGame}>Current Game</a></li>
+              )}
               <li><a onClick={startNewGame}>New Game</a></li>
               <li><a onClick={viewRivalryStats}>Rivalry Stats</a></li>
               <li><a onClick={openAdminPanel}>Admin</a></li>
