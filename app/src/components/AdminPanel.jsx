@@ -406,38 +406,11 @@ const AdminPanel = ({
       {/* Players Tab */}
       {activeTab === 'players' && (
         <div className="space-y-6">
-          {/* Add New Player */}
-          <div className="card bg-base-200 p-4">
-            <h3 className="text-lg font-semibold mb-4">Add New Player</h3>
-            
-            <div className="flex gap-2">
-              <input 
-                type="text"
-                className="input input-bordered flex-1"
-                placeholder="Player name"
-                value={newPlayerName}
-                onChange={(e) => setNewPlayerName(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addPlayer()}
-              />
-              <button 
-                className="btn btn-primary"
-                onClick={addPlayer}
-                // Disable if loading or if after adding, there would be fewer than 2 non-empty names
-                disabled={loading || (players.filter(p => p.name && p.name.trim()).length + (newPlayerName && newPlayerName.trim() ? 1 : 0) < 2)}
-              >
-                {loading ? (
-                  <span className="loading loading-spinner loading-sm"></span>
-                ) : (
-                  'Add'
-                )}
-              </button>
-            </div>
-            <p className="text-xs opacity-60 mt-2">At least two player names must be filled out to enable adding.</p>
-          </div>
+          
 
           {/* Existing Players */}
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold">Existing Players</h3>
+            <h3 className="text-lg font-semibold">Players</h3>
             
             {players.length === 0 ? (
               <p className="text-center opacity-75 py-4">No players yet</p>
