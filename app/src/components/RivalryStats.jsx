@@ -6,12 +6,27 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const API_URL = import.meta.env.VITE_API_URL
+  // Debug: log API_URL to verify it's loaded correctly
+  useEffect(() => {
+    // Only log in development
+    if (import.meta.env.DEV) {
+      console.log('RivalryStats: API_URL =', API_URL)
+    }
+  }, [API_URL])
+
   const loadRivalryDetails = async (rivalryId) => {
     setLoading(true)
     setError('')
 
+    if (!API_URL) {
+      setError('API URL is not configured. Please set VITE_API_URL in your environment.')
+      setLoading(false)
+      return
+    }
+
     try {
-      const response = await fetch(`${__API_URL__}/api/${sqid}/rivalries/${rivalryId}`)
+      const response = await fetch(`${API_URL}/api/${sqid}/rivalries/${rivalryId}`)
       if (!response.ok) {
         throw new Error('Failed to load rivalry details')
       }
@@ -41,6 +56,17 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
     return margin.toString()
   }
 
+  // Always show error if API_URL is missing
+  if (!API_URL) {
+    return (
+      <div className="space-y-6">
+        <div className="alert alert-error">
+          <span>API URL is not configured. Please set VITE_API_URL in your .env file and restart the dev server.</span>
+        </div>
+      </div>
+    )
+  }
+
   if (selectedRivalry && rivalryDetails) {
     return (
       <div className="space-y-6">
@@ -54,7 +80,7 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
           >
             ← Back
           </button>
-          <h2 className="text-xl font-bold">Rivalry Details</h2>
+          <h2 className="text-xl font-bold">Rivalry Stats</h2>
         </div>
 
         {error && (
@@ -207,7 +233,7 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
         >
           ← Back
         </button>
-        <h2 className="text-xl font-bold">Rivalry Statistics</h2>
+        <h2 className="text-xl font-bold">Rivalry Stats</h2>
       </div>
 
       {rivalries.length === 0 ? (
@@ -240,16 +266,30 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="font-semibold">
-                      {rivalry.player_names.join(' vs ')}
+                      {(() => {
+                        if (Array.isArray(rivalry.player_names) && rivalry.player_names.length > 0 && rivalry.player_names.every(name => typeof name === 'string' && name.trim() !== '')) {
+                          return rivalry.player_names.join(' vs ')
+                        } else if (Array.isArray(rivalry.players) && rivalry.players.length > 0 && rivalry.players.every(p => typeof p.name === 'string' && p.name.trim() !== '')) {
+                          return rivalry.players.map(p => p.name).join(' vs ')
+                        } else {
+                          return 'Unknown Players'
+                        }
+                      })()}
                     </h3>
+                    {/* No warning about player_names missing; fallback logic above handles display */}
                     <p className="text-sm opacity-75">
                       {rivalry.total_games} games played
                     </p>
                   </div>
                   <div className="text-right">
-                    <div className="badge badge-outline">
-                      {rivalry.wins}W / {rivalry.losses}L
-                    </div>
+                    {/* Show a summary of game types played */}
+                    {Array.isArray(rivalry.game_type_stats) && rivalry.game_type_stats.length > 0 && (
+                      <div className="text-xs opacity-75">
+                        {rivalry.game_type_stats.length === 1
+                          ? rivalry.game_type_stats[0].game_type_name
+                          : `${rivalry.game_type_stats.length} game types`}
+                      </div>
+                    )}
                     {rivalry.average_margin && (
                       <p className="text-sm opacity-75 mt-1">
                         Avg margin: {rivalry.average_margin.toFixed(1)}

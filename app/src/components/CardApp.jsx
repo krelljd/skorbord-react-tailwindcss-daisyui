@@ -19,6 +19,7 @@ const CardApp = () => {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const API_URL = import.meta.env.VITE_API_URL
   // Initialize data when socket connects
   useEffect(() => {
     if (socket && isConnected && sqid) {
@@ -53,9 +54,9 @@ const CardApp = () => {
     try {
       // Always fetch global game types, but include sqid for favorited status
       const [gameTypesRes, playersRes, rivalriesRes] = await Promise.all([
-        fetch(`${__API_URL__}/api/game_types?sqid=${encodeURIComponent(sqid)}`),
-        fetch(`${__API_URL__}/api/${sqid}/players`),
-        fetch(`${__API_URL__}/api/${sqid}/rivalries`)
+        fetch(`${API_URL}/api/game_types?sqid=${encodeURIComponent(sqid)}`),
+        fetch(`${API_URL}/api/${sqid}/players`),
+        fetch(`${API_URL}/api/${sqid}/rivalries`)
       ])
 
       if (!gameTypesRes.ok || !playersRes.ok || !rivalriesRes.ok) {
@@ -74,7 +75,7 @@ const CardApp = () => {
       setRivalries(rivalriesData.data || [])
 
       // Check if there's an active game
-      const activeGameRes = await fetch(`${__API_URL__}/api/${sqid}/games/active`)
+      const activeGameRes = await fetch(`${API_URL}/api/${sqid}/games/active`)
       if (activeGameRes.ok) {
         const activeGameData = await activeGameRes.json()
         if (activeGameData.data) {
@@ -141,7 +142,7 @@ const CardApp = () => {
 
   const loadRivalries = async () => {
     try {
-    const response = await fetch(`${__API_URL__}/api/${sqid}/rivalries`)
+      const response = await fetch(`${API_URL}/api/${sqid}/rivalries`)
       if (response.ok) {
         const data = await response.json()
         setRivalries(data.data || [])

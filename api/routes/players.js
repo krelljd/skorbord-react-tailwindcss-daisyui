@@ -42,31 +42,31 @@ router.post('/', validateCreatePlayer, async (req, res, next) => {
   try {
     const { sqid } = req.params;
     const { name } = req.body;
-    
-    // Check if player name already exists in this Sqid
+    if (!name || typeof name !== 'string') {
+      throw new ValidationError('Player name is required');
+    }
+    // Normalize name: trim and lowercase
+    const normalized = name.trim().toLowerCase();
+    // Check if player name already exists in this Sqid (case-insensitive)
     const existingPlayer = await db.get(
-      'SELECT id FROM players WHERE sqid_id = ? AND name = ?',
-      [sqid, name]
+      'SELECT id FROM players WHERE sqid_id = ? AND LOWER(TRIM(name)) = ?',
+      [sqid, normalized]
     );
-    
     if (existingPlayer) {
       throw new ConflictError('Player name already exists in this Sqid');
     }
-    
-    // Create new player
+    // Create new player with normalized name
     const playerId = generateUUID();
     const playerData = {
       id: playerId,
       sqid_id: sqid,
-      name: name,
+      name: name.trim(), // Store trimmed (but not lowercased) for display
       created_at: new Date().toISOString()
     };
-    
     await db.run(
       'INSERT INTO players (id, sqid_id, name, created_at) VALUES (?, ?, ?, ?)',
       [playerData.id, playerData.sqid_id, playerData.name, playerData.created_at]
     );
-    
     // Broadcast player created event
     req.io?.to(`/sqid/${sqid}`).emit('player_updated', {
       type: 'player_created',
@@ -74,7 +74,6 @@ router.post('/', validateCreatePlayer, async (req, res, next) => {
       sqidId: sqid,
       timestamp: new Date().toISOString()
     });
-    
     res.status(201).json(createResponse(true, playerData));
   } catch (error) {
     next(error);

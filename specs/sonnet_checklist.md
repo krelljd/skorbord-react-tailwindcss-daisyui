@@ -66,7 +66,7 @@ This checklist identifies missing instructions, unclear requirements, and questi
   - Backup strategy: Nightly copy of the DuckDB file to a separate backup directory. Use `duckdb .backup` command or OS-level file copy. Retain 7 days of rolling backups. For Pi, use a cron job and external USB or network storage if available.
 
 - [x] **Migration strategy specifics**
-  - Migration tool: dbmate (cross-platform, works with DuckDB). All schema changes are versioned in `api/db/migrations/`.
+  - Migration tool: migrationRunner.js (cross-platform, works with DuckDB). All schema changes are versioned in `api/db/migrations/`.
   - On migration failure in production: Log error, halt startup, and alert admin. Migrations are idempotent and can be retried safely after fixing the issue.
 
 ### API Specifications

@@ -46,7 +46,7 @@
 
 ## Technology Requirements
 
-- Use dbmate for DuckDB migrations
+// Use migrationRunner.js for DuckDB migrations
 - Configure DuckDB to use a file path in .env
 `DATABASE_URL=duckdb:///db/cards-duckdb.db`
 - Migrations directory should be `api/db/migrations/`

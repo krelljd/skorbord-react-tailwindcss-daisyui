@@ -67,35 +67,49 @@ export class MigrationRunner {
 
   async run() {
     console.log('🔄 Starting database migrations...');
-    
     // Create migrations table if it doesn't exist
     await this.createMigrationTable();
-    
     // Get applied and pending migrations
     const appliedMigrations = await this.getAppliedMigrations();
     const migrationFiles = await this.getMigrationFiles();
-    
+    console.log('🗂 Migration files found:', migrationFiles);
+    console.log('📝 Applied migrations:', appliedMigrations);
     const pendingMigrations = migrationFiles.filter(
       file => !appliedMigrations.includes(file)
     );
-    
+    console.log('🕒 Pending migrations:', pendingMigrations);
     if (pendingMigrations.length === 0) {
       console.log('✅ No pending migrations');
       return;
     }
-    
     console.log(`🔄 Found ${pendingMigrations.length} pending migrations`);
-    
     // Run pending migrations
     for (const migration of pendingMigrations) {
       await this.runMigration(migration);
     }
-    
     console.log('✅ All migrations completed successfully');
   }
 }
 
+
 export async function runMigrations(db) {
   const runner = new MigrationRunner(db);
   await runner.run();
+}
+
+// Add top-level script runner for CLI usage
+
+// ES module entry point check
+if (import.meta.url === `file://${process.argv[1]}`) {
+  console.log('🚀 migrationRunner.js starting...');
+  import('../database.js').then(async ({ default: db }) => {
+    try {
+      await runMigrations(db);
+      console.log('🏁 migrationRunner.js finished.');
+      process.exit(0);
+    } catch (err) {
+      console.error('❌ migrationRunner.js error:', err);
+      process.exit(1);
+    }
+  });
 }

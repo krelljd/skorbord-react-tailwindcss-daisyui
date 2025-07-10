@@ -7,9 +7,9 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "migrate": "dbmate up",
-    "migrate:down": "dbmate down",
-    "migrate:create": "dbmate new",
+    "migrate": "node ./db/migrations/migrationRunner.js",
+    "migrate:down": "echo 'Down migrations not supported by migrationRunner.js'",
+    "migrate:create": "echo 'Create migration manually in db/migrations/'",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

@@ -1,3 +1,156 @@
+  /api/{sqid}/rivalries/{rivalryId}:
+    get:
+      summary: Get rivalry details
+      description: Retrieve detailed rivalry statistics, including win/loss, average margin, player names, per-game-type stats, and recent games.
+      operationId: getRivalryDetails
+      tags:
+        - Statistics
+      parameters:
+        - name: sqid
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: rivalryId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Rivalry details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/RivalryDetails'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    RivalryDetails:
+      type: object
+      properties:
+        id:
+          type: string
+        sqid_id:
+          type: string
+        game_type_id:
+          type: string
+        player_names:
+          type: array
+          items:
+            type: string
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
+        wins:
+          type: integer
+        losses:
+          type: integer
+        average_margin:
+          type: number
+          nullable: true
+        min_win_margin:
+          type: number
+          nullable: true
+        max_win_margin:
+          type: number
+          nullable: true
+        min_loss_margin:
+          type: number
+          nullable: true
+        max_loss_margin:
+          type: number
+          nullable: true
+        total_games:
+          type: integer
+        last_10_results:
+          type: string
+          description: Win/Loss string for last 10 games (e.g., "WWLLW...")
+        game_type_stats:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameTypeStats'
+        recent_games:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecentGameSummary'
+        stats_updated_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - sqid_id
+        - game_type_id
+        - player_names
+        - wins
+        - losses
+        - total_games
+        - recent_games
+        - game_type_stats
+
+    GameTypeStats:
+      type: object
+      properties:
+        game_type_name:
+          type: string
+        games_played:
+          type: integer
+        wins:
+          type: integer
+        losses:
+          type: integer
+        average_margin:
+          type: number
+          nullable: true
+      required:
+        - game_type_name
+        - games_played
+        - wins
+        - losses
+
+    RecentGameSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        game_type_name:
+          type: string
+        is_winner:
+          type: boolean
+        completed_at:
+          type: string
+          format: date-time
+        winner_id:
+          type: string
+          nullable: true
+        winner_name:
+          type: string
+          nullable: true
+        score_difference:
+          type: number
+          nullable: true
+        player_scores:
+          type: array
+          items:
+            type: object
+            properties:
+              player_id:
+                type: string
+              player_name:
+                type: string
+              score:
+                type: number
+      required:
+        - id
+        - game_type_name
+        - is_winner
+        - completed_at
 openapi: 3.0.3
 info:
   title: Skorbord Card Scoring API

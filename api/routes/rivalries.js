@@ -81,32 +81,56 @@ router.get('/:rivalryId', async (req, res, next) => {
       LEFT JOIN rivalry_stats rs ON r.id = rs.rivalry_id
       WHERE r.id = ? AND r.sqid_id = ?
     `, [rivalryId, sqid]);
-    
+
     if (!rivalry) {
       throw new NotFoundError('Rivalry not found');
     }
-    
+
     // Get players in this rivalry
     const players = await db.query(`
       SELECT 
         p.id,
-        p.name,
-        COUNT(DISTINCT g.id) as games_played,
-        COUNT(DISTINCT CASE WHEN g.winner_id = p.id THEN g.id END) as games_won,
-        AVG(s.score) as avg_score,
-        MAX(s.score) as highest_score,
-        MIN(s.score) as lowest_score
+        p.name
       FROM rivalry_players rp
       JOIN players p ON rp.player_id = p.id
-      LEFT JOIN stats s ON p.id = s.player_id
-      LEFT JOIN games g ON s.game_id = g.id AND g.game_type_id = ? AND g.finalized = true
       WHERE rp.rivalry_id = ?
-      GROUP BY p.id, p.name
-      ORDER BY games_won DESC, p.name ASC
-    `, [rivalry.game_type_id, rivalry.id]);
-    
+      ORDER BY p.name ASC
+    `, [rivalry.id]);
+    rivalry.player_names = players.map(player => player.name);
     rivalry.players = players;
-    
+
+    // Calculate wins/losses for this rivalry
+    const winLoss = await db.get(`
+      SELECT 
+        COUNT(CASE WHEN g.winner_id IN (SELECT player_id FROM rivalry_players WHERE rivalry_id = ?) THEN 1 END) as wins,
+        COUNT(CASE WHEN g.winner_id NOT IN (SELECT player_id FROM rivalry_players WHERE rivalry_id = ?) THEN 1 END) as losses
+      FROM games g
+      JOIN rivalry_players rp ON rp.player_id = g.winner_id
+      WHERE rp.rivalry_id = ? AND g.finalized = 1
+    `, [rivalry.id, rivalry.id, rivalry.id]);
+    rivalry.wins = winLoss.wins || 0;
+    rivalry.losses = winLoss.losses || 0;
+
+    // Use average_margin instead of avg_margin
+    rivalry.average_margin = rivalry.avg_margin;
+    delete rivalry.avg_margin;
+
+    // Get per-game-type stats for this rivalry
+    const gameTypeStats = await db.query(`
+      SELECT 
+        gt.name as game_type_name,
+        COUNT(g.id) as games_played,
+        SUM(CASE WHEN g.winner_id IN (SELECT player_id FROM rivalry_players WHERE rivalry_id = ?) THEN 1 ELSE 0 END) as wins,
+        SUM(CASE WHEN g.winner_id NOT IN (SELECT player_id FROM rivalry_players WHERE rivalry_id = ?) THEN 1 ELSE 0 END) as losses,
+        AVG(CASE WHEN g.finalized = 1 THEN (SELECT MAX(s.score) - MIN(s.score) FROM stats s WHERE s.game_id = g.id) END) as average_margin
+      FROM games g
+      JOIN game_types gt ON g.game_type_id = gt.id
+      JOIN rivalry_players rp ON rp.player_id = g.winner_id
+      WHERE rp.rivalry_id = ? AND g.finalized = 1
+      GROUP BY gt.name
+    `, [rivalry.id, rivalry.id, rivalry.id]);
+    rivalry.game_type_stats = gameTypeStats;
+
     // Get recent games for this rivalry
     const recentGames = await db.query(`
       SELECT 
@@ -116,18 +140,21 @@ router.get('/:rivalryId', async (req, res, next) => {
         g.finalized,
         g.winner_id,
         wp.name as winner_name,
+        gt.name as game_type_name,
+        g.ended_at as completed_at,
         MAX(s.score) - MIN(s.score) as score_difference
       FROM games g
       JOIN stats s ON g.id = s.game_id
       JOIN rivalry_players rp ON s.player_id = rp.player_id
       LEFT JOIN players wp ON g.winner_id = wp.id
-      WHERE rp.rivalry_id = ? AND g.finalized = true
-      GROUP BY g.id, g.started_at, g.ended_at, g.finalized, g.winner_id, wp.name
+      LEFT JOIN game_types gt ON g.game_type_id = gt.id
+      WHERE rp.rivalry_id = ? AND g.finalized = 1
+      GROUP BY g.id, g.started_at, g.ended_at, g.finalized, g.winner_id, wp.name, gt.name
       ORDER BY g.started_at DESC
       LIMIT 10
     `, [rivalry.id]);
-    
-    // Get player scores for each recent game
+
+    // Get player scores for each recent game and add is_winner field
     for (const game of recentGames) {
       const gameStats = await db.query(`
         SELECT 
@@ -140,12 +167,12 @@ router.get('/:rivalryId', async (req, res, next) => {
         WHERE s.game_id = ? AND rp.rivalry_id = ?
         ORDER BY s.score DESC
       `, [game.id, rivalry.id]);
-      
       game.player_scores = gameStats;
+      // Add is_winner field for frontend
+      game.is_winner = (game.winner_id && players.some(p => p.id === game.winner_id));
     }
-    
     rivalry.recent_games = recentGames;
-    
+
     res.json(createResponse(true, rivalry));
   } catch (error) {
     next(error);
