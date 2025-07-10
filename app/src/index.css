@@ -112,10 +112,39 @@
   /* Score tally animation */
   .score-tally {
     @apply absolute top-0 right-0 bg-accent text-accent-content px-2 py-1 rounded-lg text-sm font-bold;
-    animation: fadeInOut 3s ease-in-out forwards;
+    animation: scoreTallyFadeInOut 3s ease-in-out forwards;
+  }
+
+  /* Score tally fade in/out animation - smooth and performant */
+  .score-tally-animation {
+    animation: scoreTallyFadeInOut 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
 
   /* Fade in/out animation for score tally */
+  @keyframes scoreTallyFadeInOut {
+    0% { 
+      opacity: 0; 
+      transform: translateY(-8px) scale(0.8);
+    }
+    15% { 
+      opacity: 1; 
+      transform: translateY(0) scale(1.05);
+    }
+    20% { 
+      opacity: 1; 
+      transform: translateY(0) scale(1);
+    }
+    85% { 
+      opacity: 1; 
+      transform: translateY(0) scale(1);
+    }
+    100% { 
+      opacity: 0; 
+      transform: translateY(-8px) scale(0.9);
+    }
+  }
+
+  /* Legacy fadeInOut animation (kept for compatibility) */
   @keyframes fadeInOut {
     0% { opacity: 0; transform: translateY(-10px); }
     20% { opacity: 1; transform: translateY(0); }

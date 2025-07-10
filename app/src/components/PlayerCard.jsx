@@ -10,24 +10,38 @@ const PlayerCard = ({
   isWinner 
 }) => {
   const [isUpdating, setIsUpdating] = useState(false)
+  const [glowingButton, setGlowingButton] = useState(null) // 'plus' or 'minus'
   const longPressTimer = useRef(null)
   const isLongPress = useRef(false)
+  const glowTimeoutRef = useRef(null)
 
   const handleScoreChange = async (change) => {
-    if (disabled || isUpdating) return
+    if (disabled) return
     
-    setIsUpdating(true)
+    // Trigger button glow effect
+    const buttonType = change > 0 ? 'plus' : 'minus'
+    setGlowingButton(buttonType)
+    
+    // Clear any existing glow timeout
+    if (glowTimeoutRef.current) {
+      clearTimeout(glowTimeoutRef.current)
+    }
+    
+    // Remove glow after brief period
+    glowTimeoutRef.current = setTimeout(() => {
+      setGlowingButton(null)
+    }, 200)
+    
     try {
       await onScoreChange(playerId, change)
-    } finally {
-      // Small delay to prevent rapid-fire clicks
-      setTimeout(() => setIsUpdating(false), 100)
+    } catch (error) {
+      // Handle error silently, onScoreChange should handle error display
     }
   }
 
   // Handle long press for ±10, tap/click for ±1 (works for both touch and mouse)
   const handlePressStart = (change) => {
-    if (disabled || isUpdating) return
+    if (disabled) return
     
     isLongPress.current = false
     longPressTimer.current = setTimeout(() => {
@@ -37,7 +51,7 @@ const PlayerCard = ({
   }
 
   const handlePressEnd = (change) => {
-    if (disabled || isUpdating) return
+    if (disabled) return
     
     clearTimeout(longPressTimer.current)
     // Only execute single increment if it wasn't a long press
@@ -78,13 +92,14 @@ const PlayerCard = ({
         {score}
         {scoreTally && scoreTally.total !== 0 && (
           <sup
-            className={`absolute -top-2 -right-3 text-base font-bold transition-opacity duration-500
+            key={scoreTally.timestamp} // Force re-render and restart animation when timestamp changes
+            className={`absolute -top-1 -right-2 text-sm font-bold
               ${scoreTally.total > 0 ? 'text-green-400' : 'text-red-400'}
               bg-base-200 px-1 py-0.5 rounded shadow-lg
-              animate-fade-in
+              score-tally-animation
             `}
             style={{
-              fontSize: '1.1em',
+              fontSize: '0.9em',
               zIndex: 10,
               fontWeight: 700,
               boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
@@ -100,14 +115,16 @@ const PlayerCard = ({
       <div className="grid grid-cols-2 gap-4 mt-4">
         {/* Minus Button */}
         <button
-          className="btn btn-error btn-lg text-4xl font-bold aspect-square w-full max-w-20 mx-auto"
+          className={`btn btn-error btn-lg text-4xl font-bold aspect-square w-full max-w-20 mx-auto transition-all duration-200 ${
+            glowingButton === 'minus' ? 'ring-4 ring-error ring-opacity-75 shadow-lg shadow-error/50 scale-105' : ''
+          }`}
           onTouchStart={() => handlePressStart(-1)}
           onTouchEnd={() => handlePressEnd(-1)}
           onTouchCancel={handlePressCancel}
           onMouseDown={() => handlePressStart(-1)}
           onMouseUp={() => handlePressEnd(-1)}
           onMouseLeave={handlePressCancel}
-          disabled={disabled || isUpdating}
+          disabled={disabled}
           title="Tap: -1, Long press: -10"
         >
           -
@@ -115,26 +132,21 @@ const PlayerCard = ({
 
         {/* Plus Button */}
         <button
-          className="btn btn-success btn-lg text-4xl font-bold aspect-square w-full max-w-20 mx-auto"
+          className={`btn btn-success btn-lg text-4xl font-bold aspect-square w-full max-w-20 mx-auto transition-all duration-200 ${
+            glowingButton === 'plus' ? 'ring-4 ring-success ring-opacity-75 shadow-lg shadow-success/50 scale-105' : ''
+          }`}
           onTouchStart={() => handlePressStart(1)}
           onTouchEnd={() => handlePressEnd(1)}
           onTouchCancel={handlePressCancel}
           onMouseDown={() => handlePressStart(1)}
           onMouseUp={() => handlePressEnd(1)}
           onMouseLeave={handlePressCancel}
-          disabled={disabled || isUpdating}
+          disabled={disabled}
           title="Tap: +1, Long press: +10"
         >
           +
         </button>
       </div>
-
-      {/* Loading Indicator */}
-      {isUpdating && (
-        <div className="absolute inset-0 bg-base-300 bg-opacity-50 flex items-center justify-center rounded-lg">
-          <span className="loading loading-spinner loading-md"></span>
-        </div>
-      )}
     </div>
   )
 }
