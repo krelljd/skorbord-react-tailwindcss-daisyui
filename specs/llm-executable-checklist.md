@@ -74,13 +74,6 @@ This checklist is derived from the implementation plan and is designed for step-
     - [ ] Display clear UI warnings if persistence fails or real-time sync is lost
     - [ ] Use Context7 for troubleshooting and code search
 
-- [ ] Testing & QA
-    - [ ] Write unit and integration tests for backend and frontend
-    - [ ] Test on iPhone and iPad for responsiveness and accessibility
-    - [ ] Validate real-time sync with multiple clients
-    - [ ] Ensure all code is standards-compliant, maintainable, and well-documented
-    - [ ] Use Context7 for test coverage mapping and test discovery
-
 - [ ] Deployment & Documentation
     - [ ] Configure build output to `dist/` for frontend
     - [ ] Document deployment steps in `deployment_steps.md`

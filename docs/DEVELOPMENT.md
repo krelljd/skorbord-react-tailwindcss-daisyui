@@ -152,40 +152,6 @@ npm run format
 npm run format:check
 ```
 
-#### Testing Standards
-
-- **Unit Tests**: Test individual functions and components
-- **Integration Tests**: Test API endpoints and component interactions
-- **E2E Tests**: Test complete user workflows (planned)
-
-**Test Patterns:**
-
-```javascript
-// Backend test example
-describe('Player API', () => {
-  test('should create player with valid data', async () => {
-    const response = await request(app)
-      .post('/api/players')
-      .send({ name: 'Test Player', avatar_color: '#FF5733' })
-      .expect(201);
-
-    expect(response.body).toMatchObject({
-      id: expect.any(String),
-      name: 'Test Player',
-      avatar_color: '#FF5733'
-    });
-  });
-});
-
-// Frontend test example
-describe('GameSetup', () => {
-  test('should render game setup form', () => {
-    render(<GameSetup onGameCreated={mockFn} />);
-    expect(screen.getByText(/create new game/i)).toBeInTheDocument();
-  });
-});
-```
-
 #### Commit Standards
 
 Follow conventional commits:

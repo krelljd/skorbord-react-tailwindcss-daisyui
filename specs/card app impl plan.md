@@ -104,17 +104,7 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ---
 
-## 10. Testing & QA
-
-- Write unit and integration tests for backend and frontend
-- Test on iPhone and iPad for responsiveness and accessibility
-- Validate real-time sync with multiple clients
-- Ensure all code is standards-compliant, maintainable, and well-documented
-- Use Context7 for test coverage mapping and test discovery
-
----
-
-## 11. Deployment & Documentation
+## 10. Deployment & Documentation
 
 - Configure build output to `dist/` for frontend
 - Document deployment steps in `deployment_steps.md`
@@ -125,7 +115,7 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ---
 
-## 12. Local Development
+## 11. Local Development
 
 - Provide scripts for local development: `npm run dev` for frontend, `npm run dev` for backend
 - Use `.env.local` for local configuration
@@ -134,7 +124,7 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ---
 
-## 13. Production Deployment
+## 12. Production Deployment
 
 - Use `.env.production` for production configuration
 - Build frontend with `npm run build` and serve from backend
@@ -144,7 +134,7 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ---
 
-## 14. Final Review
+## 13. Final Review
 
 - Review for accessibility, performance, and usability
 - Finalize documentation and prepare for production deployment

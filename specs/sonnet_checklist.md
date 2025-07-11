@@ -201,12 +201,6 @@ This checklist identifies missing instructions, unclear requirements, and questi
   - Required VS Code extensions: Prettier, ESLint, Tailwind CSS IntelliSense, Docker, SQLite, REST Client, GitLens.
   - Debugging: Use VS Code launch configs for Node.js and Chrome. API: attach to process. App: Chrome DevTools or VS Code debugger.
 
-- [x] **Testing strategy details**
-  - Frameworks: Jest (unit/integration), React Testing Library (components), Playwright (E2E, real-time flows).
-  - Coverage: 90%+ for core logic, 80%+ for UI. All critical paths must be tested.
-  - Real-time: Simulate WebSocket events in tests. Use Playwright for multi-client scenarios.
-  - Devices/browsers: Test on Chrome, Safari, Firefox (latest), iOS Safari, Android Chrome. Minimum supported: iOS 15+, Android 10+.
-
 - [x] **Raspberry Pi deployment specifics**
   - OS: Raspberry Pi OS Lite (Debian 12/bookworm recommended).
   - Performance: Use Node.js ARM builds, enable swap, limit background processes, optimize DB queries, and use lightweight image assets.
