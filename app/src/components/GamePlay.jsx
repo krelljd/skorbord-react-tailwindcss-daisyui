@@ -214,8 +214,19 @@ const GamePlay = ({
       // The pendingUpdates tracking prevents double-counting the tally
 
     } catch (err) {
-      console.error('Failed to update score:', err)
-      setError(err.message || 'Failed to update score')
+      // Improved error handling: show backend error message or full error object
+      let errorMsg = 'Failed to update score';
+      if (err && typeof err === 'object') {
+        if (err.message) {
+          errorMsg = err.message;
+        } else if (err.toString) {
+          errorMsg = err.toString();
+        } else {
+          errorMsg = JSON.stringify(err);
+        }
+      }
+      console.error('Failed to update score:', err);
+      setError(errorMsg);
       // Remove the pending update on error
       pendingUpdates.current.delete(updateKey)
     } finally {
