@@ -147,6 +147,9 @@ router.get('/:rivalryId', async (req, res, next) => {
     rivalry.wins = gameTypeStats.reduce((sum, stat) => sum + (stat.wins || 0), 0);
     rivalry.losses = gameTypeStats.reduce((sum, stat) => sum + (stat.losses || 0), 0);
 
+    // Aggregate total games from all game_type_stats
+    rivalry.total_games = gameTypeStats.reduce((sum, stat) => sum + (stat.total_games || 0), 0);
+
     // Get recent games for this rivalry
     const recentGames = await db.query(`
       SELECT 
@@ -184,8 +187,7 @@ router.get('/:rivalryId', async (req, res, next) => {
     }
     rivalry.recent_games = recentGames;
 
-    res.json(createResponse(true, rivalry));
-
+    // Only send one response per request to avoid ERR_HTTP_HEADERS_SENT
     res.json(createResponse(true, rivalry));
   } catch (error) {
     next(error);
