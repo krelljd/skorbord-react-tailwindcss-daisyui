@@ -41,17 +41,25 @@ const GamePlay = ({
   }, [gameStats])
 
   // Socket listeners for real-time score updates
+  // Socket listeners for real-time score updates and rivalry stats navigation
   useEffect(() => {
     if (socket && game?.id) {
       socket.on('score_update', handleScoreUpdate)
       socket.on('game_completed', handleGameCompleted)
-      
+      // Listen for show_rivalry_stats event to navigate all clients
+      socket.on('show_rivalry_stats', (data) => {
+        if (data?.sqid === sqid) {
+          setCurrentView('rivalry-stats')
+        }
+      })
+
       return () => {
         socket.off('score_update', handleScoreUpdate)
-        socket.off('game-completed', handleGameCompleted)
+        socket.off('game_completed', handleGameCompleted)
+        socket.off('show_rivalry_stats')
       }
     }
-  }, [socket, game?.id])
+  }, [socket, game?.id, sqid])
 
   const loadGameStats = async () => {
     try {
@@ -261,17 +269,17 @@ const GamePlay = ({
       const result = await response.json()
       setCurrentGame(result.data)
 
-      // Emit socket event
+      // Emit socket event to notify all clients to show rivalry stats
       if (socket) {
-        socket.emit('game_finalized', {
+        socket.emit('show_rivalry_stats', {
           sqid,
           game: result.data,
-          winner: winner,
-          // rivalry_stats: result.data.rivalry_stats // Add if backend returns this
+          winner: winner
         })
       }
 
-      onGameComplete()
+      // Locally navigate to rivalry stats screen
+      setCurrentView('rivalry-stats')
 
     } catch (err) {
       console.error('Failed to finalize game:', err)

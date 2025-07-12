@@ -39,28 +39,40 @@ const GameSetup = ({
     const updated = [...customPlayers]
     updated[index] = name // allow empty string
     setCustomPlayers(updated)
-  }
+ }
 
-  // Helper to get player names from rivalry (prefer .players, fallback to .player_names)
-  const getRivalryPlayerNames = (rivalry) => {
-    if (rivalry.players && Array.isArray(rivalry.players)) {
-      return rivalry.players.map(p => p.name)
-    }
-    return rivalry.player_names || []
+// Helper to get player names from rivalry (prefer .players, fallback to .player_names)
+// Rivalries are now grouped by unique player group (player_group_key), not per game type.
+// This ensures the dropdown only shows one entry per player group, regardless of game type.
+const getRivalryPlayerNames = (rivalry) => {
+  if (rivalry.players && Array.isArray(rivalry.players)) {
+    return rivalry.players.map(p => p.name)
   }
+  return rivalry.player_names || []
+}
 
-  // Order-agnostic rivalry selection (future-proofing, but dropdown uses id)
+  // Rivalry selection now uses player groups, not game type.
+  // When a rivalry is selected, populate players from the player group and display per-game-type stats.
   const selectRivalry = (rivalryId) => {
     setSelectedRivalry(rivalryId)
     if (rivalryId) {
+      // Find rivalry by id
       const rivalry = rivalries.find(r => r.id === rivalryId)
       if (rivalry) {
-        // Populate players from rivalry (API order)
-        setCustomPlayers(getRivalryPlayerNames(rivalry))
+        // Prefer .players, fallback to .player_names
+        let names = [];
+        if (Array.isArray(rivalry.players) && rivalry.players.length > 0 && rivalry.players.every(p => typeof p.name === 'string' && p.name.trim() !== '')) {
+          names = rivalry.players.map(p => p.name);
+        } else if (Array.isArray(rivalry.player_names) && rivalry.player_names.length > 0 && rivalry.player_names.every(name => typeof name === 'string' && name.trim() !== '')) {
+          names = rivalry.player_names;
+        } else {
+          names = ['', ''];
+        }
+        setCustomPlayers(names);
       }
     } else {
       // Reset to empty players
-      setCustomPlayers(['', ''])
+      setCustomPlayers(['', '']);
     }
   }
 
@@ -90,7 +102,6 @@ const GameSetup = ({
 
     try {
       const gameType = gameTypes.find(gt => gt.id === selectedGameType)
-      // Only require 2+ non-empty names, let backend handle mapping/creation
       const enteredNames = customPlayers.filter(name => name && name.trim()).map(name => name.trim())
       if (enteredNames.length < 2) {
         setError('At least 2 player names must be filled out')
@@ -108,7 +119,9 @@ const GameSetup = ({
           gameType.win_condition_value
       }
 
-      // Correct endpoint: /api/${sqid}/games
+      // Debug: log payload and endpoint
+      console.log('POST /api/${sqid}/games', gameData)
+
       const response = await fetch(`${__API_URL__}/api/${sqid}/games`, {
         method: 'POST',
         headers: {
@@ -117,12 +130,22 @@ const GameSetup = ({
         body: JSON.stringify(gameData)
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to start game')
+      // Debug: log response status
+      console.log('Response status:', response.status)
+
+      let result
+      try {
+        result = await response.json()
+      } catch (jsonErr) {
+        throw new Error('Failed to parse response JSON: ' + jsonErr.message)
       }
 
-      const result = await response.json()
+      if (!response.ok) {
+        // Show full error details for debugging
+        setError(result.message || JSON.stringify(result) || 'Failed to start game')
+        throw new Error(result.message || 'Failed to start game')
+      }
+
       setCurrentGame(result.data)
       setCurrentView('playing')
 
@@ -141,6 +164,11 @@ const GameSetup = ({
 
   const selectedGameTypeData = gameTypes.find(gt => gt.id === selectedGameType)
 
+  // Always use a safe array for customPlayers in render logic
+  const safeCustomPlayers = Array.isArray(customPlayers) ? customPlayers : ['', ''];
+  // Helper to check if there are at least 2 valid player names
+  const hasValidPlayers = safeCustomPlayers.filter(name => name && name.trim()).length >= 2;
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -157,17 +185,15 @@ const GameSetup = ({
       {/* Game Type Selection */}
       <div className="card bg-base-200 p-4">
         <h3 className="text-lg font-semibold mb-3">Game Type</h3>
-        
         <div className="form-control mb-4">
           <select 
             className="game-type-select"
             value={selectedGameType}
-            onChange={(e) => {
+            onChange={e => {
               setSelectedGameType(e.target.value)
               setCustomWinCondition('')
               setUseCustomCondition(false)
-            }}
-          >
+            }}>
             <option value="">Select a game type...</option>
             {gameTypes.map(gameType => (
               <option key={gameType.id} value={gameType.id}>
@@ -176,7 +202,6 @@ const GameSetup = ({
             ))}
           </select>
         </div>
-
         {favoritedGameTypes.length > 0 && (
           <button 
             className="btn btn-secondary btn-sm"
@@ -185,7 +210,6 @@ const GameSetup = ({
             🎲 Random Favorite
           </button>
         )}
-
         {/* Custom Win Condition */}
         {selectedGameTypeData && (
           <div className="mt-4 p-3 bg-base-300 rounded-lg">
@@ -196,11 +220,10 @@ const GameSetup = ({
                   type="checkbox" 
                   className="checkbox"
                   checked={useCustomCondition}
-                  onChange={(e) => setUseCustomCondition(e.target.checked)}
+                  onChange={e => setUseCustomCondition(e.target.checked)}
                 />
               </label>
             </div>
-            
             {useCustomCondition && (
               <div className="form-control mt-2">
                 <label className="label">
@@ -213,7 +236,7 @@ const GameSetup = ({
                   className="input input-bordered"
                   placeholder={selectedGameTypeData.win_condition_value.toString()}
                   value={customWinCondition}
-                  onChange={(e) => setCustomWinCondition(e.target.value)}
+                  onChange={e => setCustomWinCondition(e.target.value)}
                 />
               </div>
             )}
@@ -224,54 +247,76 @@ const GameSetup = ({
       {/* Rivalry Selection */}
       <div className="card bg-base-200 p-4">
         <h3 className="text-lg font-semibold mb-3">Players</h3>
-        
         {rivalries.length > 0 && (
           <div className="form-control mb-4">
             <label className="label">
-              <span className="label-text">Select existing rivalry (optional)</span>
+              <span className="label-text">Select existing rivalry</span>
             </label>
             <select 
               className="select select-bordered"
               value={selectedRivalry}
-              onChange={(e) => selectRivalry(e.target.value)}
-            >
+              onChange={e => selectRivalry(e.target.value)}>
               <option value="">Use players below...</option>
-              {rivalries.map(rivalry => (
-                <option key={rivalry.id} value={rivalry.id}>
-                  {(rivalry.players ? rivalry.players.map(p => p.name) : (rivalry.player_names || [])).join(' vs ')}
-                  {' '}({rivalry.total_games} games played)
-                </option>
-              ))}
+              {rivalries.map(rivalry => {
+                let names = [];
+                if (Array.isArray(rivalry.player_names) && rivalry.player_names.length > 0 && rivalry.player_names.every(name => typeof name === 'string' && name.trim() !== '')) {
+                  names = rivalry.player_names;
+                } else if (Array.isArray(rivalry.players) && rivalry.players.length > 0 && rivalry.players.every(p => typeof p.name === 'string' && p.name.trim() !== '')) {
+                  names = rivalry.players.map(p => p.name);
+                } else {
+                  names = ['Unknown Players'];
+                }
+                return (
+                  <option key={rivalry.id} value={rivalry.id}>
+                    {names.join(' vs ')}
+                  </option>
+                );
+              })}
             </select>
+            {selectedRivalry && (() => {
+              const rivalry = rivalries.find(r => r.id === selectedRivalry);
+              if (rivalry && Array.isArray(rivalry.game_type_stats) && rivalry.game_type_stats.length > 0) {
+                return (
+                  <div className="mt-4">
+                    <h4 className="text-md font-semibold mb-2">Stats by Game Type</h4>
+                    <ul className="space-y-1">
+                      {rivalry.game_type_stats.map(stat => (
+                        <li key={stat.game_type_id} className="text-sm">
+                          <span className="font-bold">{stat.game_type_name}:</span> {stat.games_played} games, {stat.wins} wins, {stat.losses} losses, Avg margin: {stat.average_margin ? stat.average_margin.toFixed(1) : 'N/A'}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         )}
 
         {/* Custom Players */}
         <div className="space-y-3">
-          {customPlayers.map((playerName, index) => (
+          {safeCustomPlayers.map((playerName, index) => (
             <div key={index} className="flex gap-2">
               <input 
                 type="text"
                 className="input input-bordered flex-1"
                 placeholder={`Player ${index + 1}`}
                 value={playerName}
-                onChange={(e) => updatePlayerName(index, e.target.value)}
+                onChange={e => updatePlayerName(index, e.target.value)}
               />
-              {customPlayers.length > 2 && (
+              {safeCustomPlayers.length > 2 && (
                 <button 
                   className="btn btn-error btn-sm"
-                  onClick={() => removePlayer(index)}
-                >
-                  ✕
+                  onClick={() => removePlayer(index)}>
+                  &#10005;
                 </button>
               )}
             </div>
           ))}
-          
           <button 
             className="btn btn-outline btn-sm w-full"
-            onClick={addPlayer}
-          >
+            onClick={addPlayer}>
             + Add Player
           </button>
         </div>
@@ -281,16 +326,11 @@ const GameSetup = ({
       <button 
         className="btn btn-primary btn-lg w-full"
         onClick={startGame}
-        disabled={loading || !selectedGameType || customPlayers.filter(name => name && name.trim()).length < 2}
+        disabled={loading || !selectedGameType || !hasValidPlayers}
       >
         {loading ? (
-          <>
-            <span className="loading loading-spinner loading-sm"></span>
-            Starting Game...
-          </>
-        ) : (
-          'Start Game'
-        )}
+          <span className="loading loading-spinner loading-sm"></span>
+          ) : 'Start Game'}
       </button>
     </div>
   )

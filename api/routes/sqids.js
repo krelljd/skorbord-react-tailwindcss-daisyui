@@ -124,32 +124,56 @@ router.get('/rivalries', async (req, res, next) => {
   try {
     const { sqid } = req.params;
     
+    // Get all rivalries for this sqid
     const rivalries = await db.query(`
-      SELECT 
-        r.*,
-        gt.name as game_type_name,
-        rs.avg_margin,
-        rs.last_10_results,
-        rs.total_games
-      FROM rivalries r
-      LEFT JOIN game_types gt ON r.game_type_id = gt.id
-      LEFT JOIN rivalry_stats rs ON r.id = rs.rivalry_id
-      WHERE r.sqid_id = ?
-      ORDER BY r.created_at DESC
+      SELECT id, created_at
+      FROM rivalries
+      WHERE sqid_id = ?
+      ORDER BY created_at DESC
     `, [sqid]);
-    
-    // Get players for each rivalry
+
     for (const rivalry of rivalries) {
+      // Get players in this rivalry
       const players = await db.query(`
         SELECT p.id, p.name
         FROM rivalry_players rp
         JOIN players p ON rp.player_id = p.id
         WHERE rp.rivalry_id = ?
+        ORDER BY p.name ASC
       `, [rivalry.id]);
-      
       rivalry.players = players;
+      rivalry.player_names = players.map(p => p.name);
+
+      // Get all game types played by this rivalry
+      const gameTypes = await db.query(`
+        SELECT gt.id, gt.name
+        FROM rivalry_game_types rgt
+        JOIN game_types gt ON rgt.game_type_id = gt.id
+        WHERE rgt.rivalry_id = ?
+        ORDER BY gt.name ASC
+      `, [rivalry.id]);
+      rivalry.game_types = gameTypes;
+
+      // Aggregate stats per game type
+      const stats = await db.query(`
+        SELECT 
+          rs.game_type_id,
+          gt.name as game_type_name,
+          rs.total_games,
+          rs.avg_margin as average_margin,
+          rs.min_win_margin,
+          rs.max_win_margin,
+          rs.min_loss_margin,
+          rs.max_loss_margin,
+          rs.last_10_results,
+          rs.updated_at
+        FROM rivalry_stats rs
+        JOIN game_types gt ON rs.game_type_id = gt.id
+        WHERE rs.rivalry_id = ?
+        ORDER BY rs.updated_at DESC
+      `, [rivalry.id]);
+      rivalry.game_type_stats = stats;
     }
-    
     res.json(createResponse(true, rivalries));
   } catch (error) {
     next(error);

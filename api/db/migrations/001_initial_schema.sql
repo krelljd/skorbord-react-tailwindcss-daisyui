@@ -4,7 +4,7 @@ CREATE TABLE sqids (
     id TEXT PRIMARY KEY,
     name TEXT UNIQUE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    owner_id TEXT
+    owner TEXT
 );
 
 -- Create game_types table
@@ -32,10 +32,13 @@ CREATE TABLE games (
     id TEXT PRIMARY KEY,
     sqid_id TEXT NOT NULL REFERENCES sqids(id) ON DELETE CASCADE,
     game_type_id TEXT NOT NULL REFERENCES game_types(id),
+    rivalry_id TEXT REFERENCES rivalries(id),
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ended_at TIMESTAMP,
     winner_id TEXT REFERENCES players(id),
-    finalized BOOLEAN DEFAULT false
+    finalized BOOLEAN DEFAULT false,
+    win_condition_type TEXT,
+    win_condition_value INTEGER
 );
 
 -- Create stats table (stores individual scores)
@@ -48,13 +51,12 @@ CREATE TABLE stats (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create rivalries table
+-- Create rivalries table (unique group of players within a sqid)
 CREATE TABLE rivalries (
     id TEXT PRIMARY KEY,
     sqid_id TEXT NOT NULL REFERENCES sqids(id) ON DELETE CASCADE,
-    game_type_id TEXT NOT NULL REFERENCES game_types(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(sqid_id, game_type_id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    -- No game_type_id here!
 );
 
 -- Create rivalry_players table (many-to-many between rivalries and players)
@@ -64,10 +66,18 @@ CREATE TABLE rivalry_players (
     PRIMARY KEY (rivalry_id, player_id)
 );
 
--- Create rivalry_stats table (aggregated statistics for rivalries)
+-- Create rivalry_game_types table (many-to-many between rivalries and game types)
+CREATE TABLE rivalry_game_types (
+    rivalry_id TEXT NOT NULL REFERENCES rivalries(id) ON DELETE CASCADE,
+    game_type_id TEXT NOT NULL REFERENCES game_types(id),
+    PRIMARY KEY (rivalry_id, game_type_id)
+);
+
+-- Create rivalry_stats table (aggregated statistics for rivalries per game type)
 CREATE TABLE rivalry_stats (
     id TEXT PRIMARY KEY,
     rivalry_id TEXT NOT NULL REFERENCES rivalries(id) ON DELETE CASCADE,
+    game_type_id TEXT NOT NULL REFERENCES game_types(id),
     avg_margin REAL,
     last_10_results TEXT, -- Store as string like "WWLWLLWWLW"
     min_win_margin INTEGER,
@@ -75,7 +85,8 @@ CREATE TABLE rivalry_stats (
     min_loss_margin INTEGER,
     max_loss_margin INTEGER,
     total_games INTEGER DEFAULT 0,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(rivalry_id, game_type_id)
 );
 
 -- Create favorites table (favorited game types per sqid)
@@ -86,31 +97,29 @@ CREATE TABLE favorites (
     PRIMARY KEY (sqid_id, game_type_id)
 );
 
+
 -- Create indexes for performance
 CREATE INDEX idx_players_sqid ON players (sqid_id);
 CREATE INDEX idx_games_sqid ON games (sqid_id);
 CREATE INDEX idx_games_game_type ON games (game_type_id);
 CREATE INDEX idx_stats_game ON stats (game_id);
 CREATE INDEX idx_stats_player ON stats (player_id);
-CREATE INDEX idx_rivalries_sqid_type ON rivalries (sqid_id, game_type_id);
 CREATE INDEX idx_favorites_sqid_type ON favorites (sqid_id, game_type_id);
 CREATE INDEX idx_stats_timestamp ON stats (created_at);
 
--- Insert default game types
-INSERT INTO game_types (id, name, description, win_condition, is_win_condition) VALUES
-    ('hearts', 'Hearts', 'Traditional Hearts card game', 100, false),
-    ('spades', 'Spades', 'Traditional Spades card game', 500, true),
-    ('euchre', 'Euchre', 'Traditional Euchre card game', 10, true),
-    ('poker', 'Poker', 'Poker chip game', 0, true),
-    ('custom', 'Custom', 'Custom scoring game', 100, true);
+-- Enforce case-insensitive uniqueness for player names within a sqid
+CREATE UNIQUE INDEX IF NOT EXISTS idx_players_sqid_name_nocase ON players (sqid_id, TRIM(name) COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS idx_rivalry_game_types_rivalry ON rivalry_game_types (rivalry_id);
+CREATE INDEX IF NOT EXISTS idx_rivalry_game_types_game_type ON rivalry_game_types (game_type_id);
 
--- +migrate Down
-DROP TABLE IF EXISTS favorites;
-DROP TABLE IF EXISTS rivalry_stats;
-DROP TABLE IF EXISTS rivalry_players;
-DROP TABLE IF EXISTS rivalries;
-DROP TABLE IF EXISTS stats;
-DROP TABLE IF EXISTS games;
-DROP TABLE IF EXISTS players;
-DROP TABLE IF EXISTS game_types;
-DROP TABLE IF EXISTS sqids;
+-- Insert default game types
+INSERT INTO game_types (id, name, description, win_condition, loss_condition, is_win_condition) VALUES
+    ('golf', 'Golf', 'Golf', null, 100, false),
+    ('oklahomagin', 'Oklahoma Gin', 'Gin Rummy with special rules', 500, null, true),
+    ('cribbage', 'Cribbage', 'Traditional Cribbage card game', 121, null, true),
+    ('lowwin', 'Low Win', 'Low Score Win game', 5, null, true),
+    ('lowloss', 'Low Loss', 'Low Score Loss game', null, 5, false),
+    ('pitch', 'Pitch', 'Pitch', 100, null, true),
+    ('blitz', 'Blitz', 'Blitz', 100, null, true);
+
+INSERT INTO "main"."sqids" ("id", "name", "owner") VALUES ('demo', 'demo', 'jason.krell@gmail.com');

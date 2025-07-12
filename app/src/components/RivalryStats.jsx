@@ -68,6 +68,12 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
   }
 
   if (selectedRivalry && rivalryDetails) {
+    // Fallback logic for player names in details view
+    const detailPlayerNames = Array.isArray(rivalryDetails.player_names) && rivalryDetails.player_names.length > 0
+      ? rivalryDetails.player_names
+      : (Array.isArray(rivalryDetails.players) && rivalryDetails.players.length > 0
+        ? rivalryDetails.players.map(p => p.name)
+        : ['Unknown Players']);
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4 mb-6">
@@ -98,7 +104,7 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
             {/* Rivalry Header */}
             <div className="card bg-base-200 p-4">
               <h3 className="text-lg font-semibold text-center mb-2">
-                {rivalryDetails.player_names.join(' vs ')}
+                {detailPlayerNames.join(' vs ')}
               </h3>
               <p className="text-center opacity-75">
                 {rivalryDetails.total_games} total games
@@ -127,8 +133,9 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
                     rivalryDetails.average_margin.toFixed(1) : 
                     'N/A'
                   }
-                </div>
-                <div className="stat-desc">
+                  <span className="text-sm opacity-75">
+                    {detailPlayerNames.join(' vs ')}
+                  </span>
                   Points per game
                 </div>
               </div>
@@ -235,7 +242,6 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
         </button>
         <h2 className="text-xl font-bold">Rivalry Stats</h2>
       </div>
-
       {rivalries.length === 0 ? (
         <div className="text-center py-8">
           <div className="text-4xl mb-4">📊</div>
@@ -255,50 +261,38 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
           <p className="text-center opacity-75 mb-6">
             Select a rivalry to view detailed statistics
           </p>
-          
           <div className="space-y-3">
-            {rivalries.map(rivalry => (
-              <div 
-                key={rivalry.id}
-                className="card bg-base-200 p-4 cursor-pointer hover:bg-base-300 transition-colors"
-                onClick={() => selectRivalry(rivalry)}
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="font-semibold">
-                      {(() => {
-                        if (Array.isArray(rivalry.player_names) && rivalry.player_names.length > 0 && rivalry.player_names.every(name => typeof name === 'string' && name.trim() !== '')) {
-                          return rivalry.player_names.join(' vs ')
-                        } else if (Array.isArray(rivalry.players) && rivalry.players.length > 0 && rivalry.players.every(p => typeof p.name === 'string' && p.name.trim() !== '')) {
-                          return rivalry.players.map(p => p.name).join(' vs ')
-                        } else {
-                          return 'Unknown Players'
-                        }
-                      })()}
+            {rivalries.map(rivalry => {
+              // Fallback logic for player names in rivalry list
+              const listPlayerNames = Array.isArray(rivalry.player_names) && rivalry.player_names.length > 0
+                ? rivalry.player_names
+                : (Array.isArray(rivalry.players) && rivalry.players.length > 0
+                  ? rivalry.players.map(p => p.name)
+                  : ['Unknown Players']);
+              return (
+                <div 
+                  key={rivalry.id}
+                  className="card bg-base-200 p-4 cursor-pointer hover:bg-base-300 transition-colors"
+                  onClick={() => selectRivalry(rivalry)}
+                >
+                  <div className="flex flex-col gap-2">
+                    <h3 className="font-semibold text-lg">
+                      {listPlayerNames.join(' vs ')}
                     </h3>
-                    {/* No warning about player_names missing; fallback logic above handles display */}
-                    <p className="text-sm opacity-75">
-                      {rivalry.total_games} games played
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    {/* Show a summary of game types played */}
-                    {Array.isArray(rivalry.game_type_stats) && rivalry.game_type_stats.length > 0 && (
-                      <div className="text-xs opacity-75">
-                        {rivalry.game_type_stats.length === 1
-                          ? rivalry.game_type_stats[0].game_type_name
-                          : `${rivalry.game_type_stats.length} game types`}
+                    {/* Show all game types played by this rivalry */}
+                    {Array.isArray(rivalry.game_types) && rivalry.game_types.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {rivalry.game_types.map(gt => (
+                          <span key={gt.id} className="badge badge-outline">
+                            {gt.name}
+                          </span>
+                        ))}
                       </div>
-                    )}
-                    {rivalry.average_margin && (
-                      <p className="text-sm opacity-75 mt-1">
-                        Avg margin: {rivalry.average_margin.toFixed(1)}
-                      </p>
                     )}
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}

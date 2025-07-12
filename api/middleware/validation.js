@@ -16,8 +16,7 @@ export async function validateSquid(req, res, next) {
 
     // Check if Sqid exists
     const sqidRecord = await db.get(
-      'SELECT id, name, created_at FROM sqids WHERE id = ?',
-      [sqid]
+      'SELECT id, name, created_at FROM sqids WHERE id = ?',[sqid]
     );
 
     if (!sqidRecord) {

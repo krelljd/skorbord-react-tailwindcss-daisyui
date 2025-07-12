@@ -59,15 +59,25 @@ const CardApp = () => {
         fetch(`${API_URL}/api/${sqid}/rivalries`)
       ])
 
-      if (!gameTypesRes.ok || !playersRes.ok || !rivalriesRes.ok) {
-        throw new Error('Failed to load initial data')
+      // Accept 200 OK, 204 No Content, and 404 Not Found for players/rivalries as valid empty responses
+      if (!gameTypesRes.ok) {
+        throw new Error('Failed to load game types')
+      }
+
+      // Helper to parse empty responses
+      const parseEmpty = async (res) => {
+        if (res.status === 204 || res.status === 404) return { data: [] }
+        if (!res.ok) throw new Error('Failed to load resource')
+        return res.json()
       }
 
       const [gameTypesData, playersData, rivalriesData] = await Promise.all([
         gameTypesRes.json(),
-        playersRes.json(),
-        rivalriesRes.json()
+        parseEmpty(playersRes),
+        parseEmpty(rivalriesRes)
       ])
+
+      // Removed duplicate declaration; see below for robust version
 
       // gameTypes is always global, but is_favorited is per sqid
       setGameTypes(gameTypesData.data || [])

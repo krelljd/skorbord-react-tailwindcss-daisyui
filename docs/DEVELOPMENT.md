@@ -25,7 +25,7 @@ The backend follows a layered architecture pattern:
 - **Routes**: RESTful API endpoints for CRUD operations
 - **Middleware**: Authentication, validation, error handling, rate limiting
 - **Socket Handlers**: Real-time event processing
-- **Database Layer**: DuckDB operations with connection pooling
+-- **Database Layer**: SQLite operations with connection pooling
 - **Utilities**: Helper functions and business logic
 
 ### Frontend Architecture
@@ -98,11 +98,6 @@ cd api
 # Development server with hot reload
 npm run dev
 
-# Run tests
-npm test
-npm run test:watch
-npm run test:coverage
-
 # Database operations
 npm run migrate          # Apply migrations
 npm run migrate:down     # Rollback migrations
@@ -125,11 +120,6 @@ npm run build
 
 # Preview production build
 npm run preview
-
-# Run tests
-npm test
-npm run test:ui
-npm run test:coverage
 ```
 
 ### Code Quality Standards
@@ -160,63 +150,8 @@ Follow conventional commits:
 feat: add new game type support
 fix: resolve scoring calculation bug
 docs: update API documentation
-test: add integration tests for games
 refactor: optimize database queries
 style: update UI components styling
-```
-
-## Database Design
-
-### Schema Overview
-
-The database uses a relational model optimized for DuckDB:
-
-```sql
--- Core entities
-players (id, name, avatar_color, created_at, updated_at)
-game_types (id, name, description, min_players, max_players, supports_teams, default_settings)
-games (id, short_id, game_type_id, status, settings, created_at, updated_at, completed_at)
-
--- Relationships
-game_players (game_id, player_id, position, team_id, final_score, final_position)
-rounds (id, game_id, round_number, completed, created_at)
-scores (id, round_id, player_id, points, created_at)
-```
-
-### Indexing Strategy
-
-Key indexes for performance:
-
-```sql
--- Frequently queried fields
-CREATE INDEX idx_games_status ON games(status);
-CREATE INDEX idx_games_created_at ON games(created_at);
-CREATE INDEX idx_players_name ON players(name);
-CREATE INDEX idx_scores_player_round ON scores(player_id, round_id);
-```
-
-### Migration Guidelines
-
-1. **Always backward compatible**: Never break existing data
-2. **Incremental changes**: Small, focused migrations
-3. **Rollback support**: Include down migrations
-4. **Data validation**: Validate constraints before applying
-5. **Performance impact**: Consider index creation timing
-
-Example migration:
-
-```sql
--- 002_add_game_teams.sql
--- Add team support to games
-
-ALTER TABLE game_players ADD COLUMN team_id VARCHAR;
-ALTER TABLE game_types ADD COLUMN supports_teams BOOLEAN DEFAULT FALSE;
-
--- Update existing game types
-UPDATE game_types SET supports_teams = TRUE WHERE name IN ('Spades', 'Euchre');
-
--- Create index for team queries
-CREATE INDEX idx_game_players_team ON game_players(team_id) WHERE team_id IS NOT NULL;
 ```
 
 ## API Design Principles

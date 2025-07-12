@@ -1,5 +1,5 @@
 // delete-all-stats.js
-// Utility script to delete all rows from the stats table in the DuckDB/SQLite database.
+// Utility script to delete all rows from the stats table in the SQLite database.
 // This script is idempotent and safe to run multiple times.
 // Usage: `node delete-all-stats.js`
 //

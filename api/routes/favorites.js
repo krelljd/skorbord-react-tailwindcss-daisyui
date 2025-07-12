@@ -7,8 +7,9 @@ const router = express.Router({ mergeParams: true });
 
 /**
  * POST /api/:sqid/game_types/:gameTypeId/favorite - Add favorite
+ * Accepts both /favorite and /favorite/ for robustness
  */
-router.post('/', async (req, res, next) => {
+router.post(['/', ''], async (req, res, next) => {
   try {
     const { sqid, gameTypeId } = req.params;
     if (!isValidId(sqid) || !isValidId(gameTypeId)) {
@@ -34,8 +35,9 @@ router.post('/', async (req, res, next) => {
 
 /**
  * DELETE /api/:sqid/game_types/:gameTypeId/favorite - Remove favorite
+ * Accepts both /favorite and /favorite/ for robustness
  */
-router.delete('/', async (req, res, next) => {
+router.delete(['/', ''], async (req, res, next) => {
   try {
     const { sqid, gameTypeId } = req.params;
     if (!isValidId(sqid) || !isValidId(gameTypeId)) {

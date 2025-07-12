@@ -1,5 +1,5 @@
 // delete-all-games.js
-// Utility script to delete all rows from the games table in the DuckDB/SQLite database.
+// Utility script to delete all rows from the games table in the SQLite database.
 // This script is idempotent and safe to run multiple times.
 // Usage: `node delete-all-games.js`
 //

@@ -377,25 +377,26 @@ router.delete('/:gameId', validateGameAccess, async (req, res, next) => {
 async function createOrUpdateRivalry(db, sqidId, gameTypeId, playerIds) {
   // Sort player IDs for consistent rivalry identification
   const sortedPlayerIds = [...playerIds].sort();
-  
-  // Check if rivalry exists
+  // Find rivalry by sqid and exact set of players (no game_type_id in rivalries)
   let rivalry = await db.get(`
-    SELECT r.id 
+    SELECT r.id
     FROM rivalries r
-    JOIN rivalry_players rp1 ON r.id = rp1.rivalry_id AND rp1.player_id = ?
-    JOIN rivalry_players rp2 ON r.id = rp2.rivalry_id AND rp2.player_id = ?
-    WHERE r.sqid_id = ? AND r.game_type_id = ?
-    AND (SELECT COUNT(*) FROM rivalry_players WHERE rivalry_id = r.id) = ?
-  `, [sortedPlayerIds[0], sortedPlayerIds[1], sqidId, gameTypeId, playerIds.length]);
-  
+    JOIN rivalry_players rp ON r.id = rp.rivalry_id
+    WHERE r.sqid_id = ?
+    AND rp.player_id IN (${sortedPlayerIds.map(() => '?').join(',')})
+    GROUP BY r.id
+    HAVING COUNT(rp.player_id) = ?
+    AND (
+      SELECT COUNT(*) FROM rivalry_players WHERE rivalry_id = r.id
+    ) = ?
+  `, [sqidId, ...sortedPlayerIds, sortedPlayerIds.length, sortedPlayerIds.length]);
   if (!rivalry) {
     // Create new rivalry
     const rivalryId = generateUUID();
     await db.run(
-      'INSERT INTO rivalries (id, sqid_id, game_type_id, created_at) VALUES (?, ?, ?, ?)',
-      [rivalryId, sqidId, gameTypeId, new Date().toISOString()]
+      'INSERT INTO rivalries (id, sqid_id, created_at) VALUES (?, ?, ?)',
+      [rivalryId, sqidId, new Date().toISOString()]
     );
-    
     // Add players to rivalry
     for (const playerId of playerIds) {
       await db.run(
@@ -403,13 +404,35 @@ async function createOrUpdateRivalry(db, sqidId, gameTypeId, playerIds) {
         [rivalryId, playerId]
       );
     }
-    
+    // Add game type to rivalry_game_types
+    await db.run(
+      'INSERT INTO rivalry_game_types (rivalry_id, game_type_id) VALUES (?, ?)',
+      [rivalryId, gameTypeId]
+    );
     // Initialize rivalry stats
     const statsId = generateUUID();
     await db.run(
-      'INSERT INTO rivalry_stats (id, rivalry_id, avg_margin, last_10_results, total_games, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
-      [statsId, rivalryId, 0, '', 0, new Date().toISOString()]
+      'INSERT INTO rivalry_stats (id, rivalry_id, game_type_id, avg_margin, last_10_results, total_games, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [statsId, rivalryId, gameTypeId, 0, '', 0, new Date().toISOString()]
     );
+  } else {
+    // If rivalry exists, ensure game type is linked
+    const exists = await db.get(
+      'SELECT 1 FROM rivalry_game_types WHERE rivalry_id = ? AND game_type_id = ?',
+      [rivalry.id, gameTypeId]
+    );
+    if (!exists) {
+      await db.run(
+        'INSERT INTO rivalry_game_types (rivalry_id, game_type_id) VALUES (?, ?)',
+        [rivalry.id, gameTypeId]
+      );
+      // Also initialize rivalry_stats for this game type
+      const statsId = generateUUID();
+      await db.run(
+        'INSERT INTO rivalry_stats (id, rivalry_id, game_type_id, avg_margin, last_10_results, total_games, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [statsId, rivalry.id, gameTypeId, 0, '', 0, new Date().toISOString()]
+      );
+    }
   }
 }
 
@@ -417,18 +440,33 @@ async function createOrUpdateRivalry(db, sqidId, gameTypeId, playerIds) {
  * Helper function to update rivalry statistics
  */
 async function updateRivalryStats(sqidId, gameTypeId, gameId) {
-  // Get rivalry for this game type and players
+  // Get player IDs for this game
+  const playerIds = await db.query(`
+    SELECT player_id FROM stats WHERE game_id = ? ORDER BY player_id ASC
+  `, [gameId]);
+  const playerIdList = playerIds.map(row => row.player_id);
+  // Find rivalry by sqid and exact set of players
+  const placeholders = playerIdList.map(() => '?').join(',');
   const rivalry = await db.get(`
-    SELECT DISTINCT r.id
+    SELECT r.id
     FROM rivalries r
     JOIN rivalry_players rp ON r.id = rp.rivalry_id
-    JOIN stats s ON rp.player_id = s.player_id
-    WHERE r.sqid_id = ? AND r.game_type_id = ? AND s.game_id = ?
-  `, [sqidId, gameTypeId, gameId]);
-  
+    WHERE r.sqid_id = ?
+    AND rp.player_id IN (${placeholders})
+    GROUP BY r.id
+    HAVING COUNT(rp.player_id) = ?
+    AND (
+      SELECT COUNT(*) FROM rivalry_players WHERE rivalry_id = r.id
+    ) = ?
+  `, [sqidId, ...playerIdList, playerIdList.length, playerIdList.length]);
   if (!rivalry) return;
-  
-  // Get all finalized games for this rivalry
+  // Ensure rivalry_game_types entry exists
+  const exists = await db.get(
+    'SELECT 1 FROM rivalry_game_types WHERE rivalry_id = ? AND game_type_id = ?',
+    [rivalry.id, gameTypeId]
+  );
+  if (!exists) return;
+  // Get all finalized games for this rivalry and game type
   const games = await db.query(`
     SELECT 
       g.id,
@@ -437,19 +475,17 @@ async function updateRivalryStats(sqidId, gameTypeId, gameId) {
     FROM games g
     JOIN stats s ON g.id = s.game_id
     JOIN rivalry_players rp ON s.player_id = rp.player_id
-    WHERE rp.rivalry_id = ? AND g.finalized = true
+    WHERE rp.rivalry_id = ? AND g.game_type_id = ? AND g.finalized = true
     GROUP BY g.id, g.winner_id
     ORDER BY g.started_at ASC
-  `, [rivalry.id]);
-  
+  `, [rivalry.id, gameTypeId]);
   const stats = calculateRivalryStats(games);
-  
-  // Update rivalry stats
+  // Update rivalry_stats for this rivalry and game type
   await db.run(`
     UPDATE rivalry_stats 
     SET avg_margin = ?, last_10_results = ?, min_win_margin = ?, max_win_margin = ?, 
         min_loss_margin = ?, max_loss_margin = ?, total_games = ?, updated_at = ?
-    WHERE rivalry_id = ?
+    WHERE rivalry_id = ? AND game_type_id = ?
   `, [
     stats.avg_margin,
     stats.last_10_results,
@@ -459,7 +495,8 @@ async function updateRivalryStats(sqidId, gameTypeId, gameId) {
     stats.max_loss_margin,
     stats.total_games,
     new Date().toISOString(),
-    rivalry.id
+    rivalry.id,
+    gameTypeId
   ]);
 }
 

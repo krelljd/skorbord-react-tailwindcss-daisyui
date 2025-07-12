@@ -49,20 +49,36 @@ export class MigrationRunner {
   async runMigration(filename) {
     const filePath = join(__dirname, filename);
     const sql = fs.readFileSync(filePath, 'utf8');
-    
+
     console.log(`🔄 Running migration: ${filename}`);
-    
-    // Split SQL on semicolons and execute each statement
-    const statements = sql.split(';').filter(stmt => stmt.trim());
-    
-    for (const statement of statements) {
-      if (statement.trim()) {
-        await this.db.run(statement.trim());
+
+    // Special handling for migrations that depend on tables
+    if (filename === '002_add_custom_win_conditions.sql') {
+      // Check if games table exists
+      const gamesTable = await this.db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='games';");
+      if (!gamesTable || gamesTable.length === 0) {
+        console.warn('⚠️ Skipping migration 002_add_custom_win_conditions.sql: games table does not exist');
+        return;
       }
     }
-    
-    await this.markMigrationAsApplied(filename);
-    console.log(`✅ Migration completed: ${filename}`);
+
+    // Wrap migration in a transaction
+    try {
+      await this.db.run('BEGIN TRANSACTION');
+      const statements = sql.split(';').filter(stmt => stmt.trim());
+      for (const statement of statements) {
+        if (statement.trim()) {
+          await this.db.run(statement.trim());
+        }
+      }
+      await this.db.run('COMMIT');
+      await this.markMigrationAsApplied(filename);
+      console.log(`✅ Migration completed: ${filename}`);
+    } catch (err) {
+      await this.db.run('ROLLBACK');
+      console.error(`❌ Migration failed: ${filename}`);
+      throw err;
+    }
   }
 
   async run() {
