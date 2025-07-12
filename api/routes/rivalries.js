@@ -69,24 +69,31 @@ router.get('/', async (req, res, next) => {
       `, [rivalry.id]);
       rivalry.game_types = gameTypes;
 
-      // Aggregate stats per game type
-      const stats = await db.query(`
+      // Aggregate stats per game type from rivalry_player_stats
+      const rawStats = await db.query(`
         SELECT 
-          rs.game_type_id,
+          gt.id as game_type_id,
           gt.name as game_type_name,
-          rs.total_games,
-          rs.avg_margin as average_margin,
-          rs.min_win_margin,
-          rs.max_win_margin,
-          rs.min_loss_margin,
-          rs.max_loss_margin,
-          rs.last_10_results,
-          rs.updated_at
-        FROM rivalry_stats rs
-        JOIN game_types gt ON rs.game_type_id = gt.id
-        WHERE rs.rivalry_id = ?
-        ORDER BY rs.updated_at DESC
-      `, [rivalry.id]);
+          COUNT(DISTINCT g.id) as total_games,
+          AVG(rps.avg_margin) as average_margin,
+          MIN(rps.min_win_margin) as min_win_margin,
+          MAX(rps.max_win_margin) as max_win_margin,
+          MIN(rps.min_loss_margin) as min_loss_margin,
+          MAX(rps.max_loss_margin) as max_loss_margin,
+          GROUP_CONCAT(rps.last_10_results, '') as last_10_results,
+          MAX(rps.updated_at) as updated_at
+        FROM game_types gt
+        LEFT JOIN games g ON g.game_type_id = gt.id AND g.rivalry_id = ? AND g.finalized = 1
+        LEFT JOIN rivalry_player_stats rps ON rps.game_type_id = gt.id AND rps.rivalry_id = ?
+        WHERE gt.id IN (SELECT game_type_id FROM rivalry_game_types WHERE rivalry_id = ?)
+        GROUP BY gt.id
+        ORDER BY updated_at DESC
+      `, [rivalry.id, rivalry.id, rivalry.id]);
+      // Truncate last_10_results to last 10 chars for each game type
+      const stats = rawStats.map(stat => ({
+        ...stat,
+        last_10_results: stat.last_10_results ? stat.last_10_results.slice(-10) : '',
+      }));
       rivalry.game_type_stats = stats;
     }
     // Return array of rivalries
@@ -123,32 +130,74 @@ router.get('/:rivalryId', async (req, res, next) => {
     rivalry.player_names = players.map(player => player.name);
     rivalry.players = players;
 
-    // Get per-game-type stats for this rivalry using rivalry_stats
-    const gameTypeStats = await db.query(`
+
+    // Aggregate per-game-type stats from rivalry_player_stats
+    const rawStats = await db.query(`
       SELECT 
-        rs.game_type_id,
+        gt.id as game_type_id,
         gt.name as game_type_name,
-        rs.total_games,
-        rs.avg_margin as average_margin,
-        rs.min_win_margin,
-        rs.max_win_margin,
-        rs.min_loss_margin,
-        rs.max_loss_margin,
-        rs.last_10_results,
-        rs.updated_at
-      FROM rivalry_stats rs
-      JOIN game_types gt ON rs.game_type_id = gt.id
-      WHERE rs.rivalry_id = ?
-      ORDER BY rs.updated_at DESC
-    `, [rivalry.id]);
+        COUNT(DISTINCT g.id) as total_games,
+        AVG(rps.avg_margin) as average_margin,
+        MIN(rps.min_win_margin) as min_win_margin,
+        MAX(rps.max_win_margin) as max_win_margin,
+        MIN(rps.min_loss_margin) as min_loss_margin,
+        MAX(rps.max_loss_margin) as max_loss_margin,
+        GROUP_CONCAT(rps.last_10_results, '') as last_10_results,
+        MAX(rps.updated_at) as updated_at
+      FROM game_types gt
+      LEFT JOIN games g ON g.game_type_id = gt.id AND g.rivalry_id = ? AND g.finalized = 1
+      LEFT JOIN rivalry_player_stats rps ON rps.game_type_id = gt.id AND rps.rivalry_id = ?
+      WHERE gt.id IN (SELECT game_type_id FROM rivalry_game_types WHERE rivalry_id = ?)
+      GROUP BY gt.id
+      ORDER BY updated_at DESC
+    `, [rivalry.id, rivalry.id, rivalry.id]);
+    // Truncate last_10_results to last 10 chars for each game type
+    const gameTypeStats = rawStats.map(stat => ({
+      ...stat,
+      last_10_results: stat.last_10_results ? stat.last_10_results.slice(-10) : '',
+    }));
     rivalry.game_type_stats = gameTypeStats;
 
-    // Optionally, calculate aggregate wins/losses if needed
-    rivalry.wins = gameTypeStats.reduce((sum, stat) => sum + (stat.wins || 0), 0);
-    rivalry.losses = gameTypeStats.reduce((sum, stat) => sum + (stat.losses || 0), 0);
+    // Get per-player stats for this rivalry and each game type
+    const playerStats = {};
+    for (const player of players) {
+      playerStats[player.id] = {};
+      for (const stat of gameTypeStats) {
+        const pStat = await db.get(`
+          SELECT 
+            total_games, wins, losses, avg_margin, min_win_margin, max_win_margin, min_loss_margin, max_loss_margin, last_10_results, updated_at
+          FROM rivalry_player_stats
+          WHERE rivalry_id = ? AND player_id = ? AND game_type_id = ?
+        `, [rivalry.id, player.id, stat.game_type_id]);
+        playerStats[player.id][stat.game_type_id] = pStat || {
+          total_games: 0,
+          wins: 0,
+          losses: 0,
+          avg_margin: null,
+          min_win_margin: null,
+          max_win_margin: null,
+          min_loss_margin: null,
+          max_loss_margin: null,
+          last_10_results: '',
+          updated_at: null
+        };
+      }
+    }
+    rivalry.player_stats = playerStats;
 
-    // Aggregate total games from all game_type_stats
-    rivalry.total_games = gameTypeStats.reduce((sum, stat) => sum + (stat.total_games || 0), 0);
+    // Optionally, calculate aggregate wins/losses if needed
+    // Aggregate from rivalry_player_stats
+    const agg = await db.get(`
+      SELECT 
+        COUNT(DISTINCT g.id) as total_games,
+        SUM(CASE WHEN g.winner_id IN (SELECT player_id FROM rivalry_players WHERE rivalry_id = ?) THEN 1 ELSE 0 END) as wins,
+        SUM(CASE WHEN g.winner_id NOT IN (SELECT player_id FROM rivalry_players WHERE rivalry_id = ?) THEN 1 ELSE 0 END) as losses
+      FROM games g
+      WHERE g.rivalry_id = ? AND g.finalized = 1
+    `, [rivalry.id, rivalry.id, rivalry.id]);
+    rivalry.total_games = agg.total_games || 0;
+    rivalry.wins = agg.wins || 0;
+    rivalry.losses = agg.losses || 0;
 
     // Get recent games for this rivalry
     const recentGames = await db.query(`

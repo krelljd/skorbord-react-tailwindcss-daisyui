@@ -409,12 +409,7 @@ async function createOrUpdateRivalry(db, sqidId, gameTypeId, playerIds) {
       'INSERT INTO rivalry_game_types (rivalry_id, game_type_id) VALUES (?, ?)',
       [rivalryId, gameTypeId]
     );
-    // Initialize rivalry stats
-    const statsId = generateUUID();
-    await db.run(
-      'INSERT INTO rivalry_stats (id, rivalry_id, game_type_id, avg_margin, last_10_results, total_games, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [statsId, rivalryId, gameTypeId, 0, '', 0, new Date().toISOString()]
-    );
+    // No longer initialize rivalry_stats. All stats aggregation uses rivalry_player_stats and games.
   } else {
     // If rivalry exists, ensure game type is linked
     const exists = await db.get(
@@ -426,12 +421,7 @@ async function createOrUpdateRivalry(db, sqidId, gameTypeId, playerIds) {
         'INSERT INTO rivalry_game_types (rivalry_id, game_type_id) VALUES (?, ?)',
         [rivalry.id, gameTypeId]
       );
-      // Also initialize rivalry_stats for this game type
-      const statsId = generateUUID();
-      await db.run(
-        'INSERT INTO rivalry_stats (id, rivalry_id, game_type_id, avg_margin, last_10_results, total_games, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [statsId, rivalry.id, gameTypeId, 0, '', 0, new Date().toISOString()]
-      );
+      // No longer initialize rivalry_stats for this game type.
     }
   }
 }
@@ -471,33 +461,81 @@ async function updateRivalryStats(sqidId, gameTypeId, gameId) {
     SELECT 
       g.id,
       g.winner_id,
-      MAX(s.score) - MIN(s.score) as score_difference
+      MAX(s.score) - MIN(s.score) as score_difference,
+      s.player_id,
+      s.score
     FROM games g
     JOIN stats s ON g.id = s.game_id
     JOIN rivalry_players rp ON s.player_id = rp.player_id
     WHERE rp.rivalry_id = ? AND g.game_type_id = ? AND g.finalized = true
-    GROUP BY g.id, g.winner_id
     ORDER BY g.started_at ASC
   `, [rivalry.id, gameTypeId]);
-  const stats = calculateRivalryStats(games);
-  // Update rivalry_stats for this rivalry and game type
-  await db.run(`
-    UPDATE rivalry_stats 
-    SET avg_margin = ?, last_10_results = ?, min_win_margin = ?, max_win_margin = ?, 
-        min_loss_margin = ?, max_loss_margin = ?, total_games = ?, updated_at = ?
-    WHERE rivalry_id = ? AND game_type_id = ?
-  `, [
-    stats.avg_margin,
-    stats.last_10_results,
-    stats.min_win_margin,
-    stats.max_win_margin,
-    stats.min_loss_margin,
-    stats.max_loss_margin,
-    stats.total_games,
-    new Date().toISOString(),
-    rivalry.id,
-    gameTypeId
-  ]);
+
+  // No longer update rivalry_stats. All stats aggregation uses rivalry_player_stats and games.
+
+  // Calculate and upsert rivalry_player_stats for each player
+  for (const playerId of playerIdList) {
+    // Get all finalized games for this rivalry, game type, and player
+    const playerGames = await db.query(`
+      SELECT g.id, g.winner_id, s.player_id, s.score
+      FROM games g
+      JOIN stats s ON g.id = s.game_id
+      JOIN rivalry_players rp ON s.player_id = rp.player_id
+      WHERE rp.rivalry_id = ? AND g.game_type_id = ? AND g.finalized = true AND s.player_id = ?
+      ORDER BY g.started_at ASC
+    `, [rivalry.id, gameTypeId, playerId]);
+
+    let wins = 0, losses = 0, totalGames = playerGames.length;
+    let winMargins = [], lossMargins = [], last10Results = '';
+    let totalMargin = 0;
+    for (const game of playerGames) {
+      // Get all scores for this game
+      const scores = await db.query(`SELECT player_id, score FROM stats WHERE game_id = ?`, [game.id]);
+      const playerScore = scores.find(s => s.player_id === playerId)?.score ?? 0;
+      // For win: margin = playerScore - next highest score
+      // For loss: margin = next lowest score - playerScore
+      const otherScores = scores.filter(s => s.player_id !== playerId).map(s => s.score);
+      let margin = 0;
+      if (game.winner_id === playerId) {
+        wins++;
+        const nextBest = otherScores.length > 0 ? Math.max(...otherScores) : 0;
+        margin = playerScore - nextBest;
+        winMargins.push(margin);
+        last10Results += 'W';
+      } else {
+        losses++;
+        const nextWorst = otherScores.length > 0 ? Math.min(...otherScores) : 0;
+        margin = nextWorst - playerScore;
+        lossMargins.push(margin);
+        last10Results += 'L';
+      }
+      totalMargin += Math.abs(margin);
+    }
+    const avgMargin = totalGames > 0 ? totalMargin / totalGames : 0;
+    const minWinMargin = winMargins.length > 0 ? Math.min(...winMargins) : (totalGames > 0 ? 0 : null);
+    const maxWinMargin = winMargins.length > 0 ? Math.max(...winMargins) : (totalGames > 0 ? 0 : null);
+    const minLossMargin = lossMargins.length > 0 ? Math.min(...lossMargins) : (totalGames > 0 ? 0 : null);
+    const maxLossMargin = lossMargins.length > 0 ? Math.max(...lossMargins) : (totalGames > 0 ? 0 : null);
+    const last10 = last10Results.slice(-10);
+
+    // Upsert into rivalry_player_stats
+    const existing = await db.get(
+      'SELECT id FROM rivalry_player_stats WHERE rivalry_id = ? AND player_id = ? AND game_type_id = ?',
+      [rivalry.id, playerId, gameTypeId]
+    );
+    const statId = existing ? existing.id : generateUUID();
+    if (existing) {
+      await db.run(
+        `UPDATE rivalry_player_stats SET total_games = ?, wins = ?, losses = ?, avg_margin = ?, min_win_margin = ?, max_win_margin = ?, min_loss_margin = ?, max_loss_margin = ?, last_10_results = ?, updated_at = ? WHERE id = ?`,
+        [totalGames, wins, losses, avgMargin, minWinMargin, maxWinMargin, minLossMargin, maxLossMargin, last10, new Date().toISOString(), statId]
+      );
+    } else {
+      await db.run(
+        `INSERT INTO rivalry_player_stats (id, rivalry_id, player_id, game_type_id, total_games, wins, losses, avg_margin, min_win_margin, max_win_margin, min_loss_margin, max_loss_margin, last_10_results, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [statId, rivalry.id, playerId, gameTypeId, totalGames, wins, losses, avgMargin, minWinMargin, maxWinMargin, minLossMargin, maxLossMargin, last10, new Date().toISOString()]
+      );
+    }
+  }
 }
 
 export default router;

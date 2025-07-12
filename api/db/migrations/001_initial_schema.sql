@@ -112,7 +112,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_players_sqid_name_nocase ON players (sqid_
 CREATE INDEX IF NOT EXISTS idx_rivalry_game_types_rivalry ON rivalry_game_types (rivalry_id);
 CREATE INDEX IF NOT EXISTS idx_rivalry_game_types_game_type ON rivalry_game_types (game_type_id);
 
--- Insert default game types
 INSERT INTO game_types (id, name, description, win_condition, loss_condition, is_win_condition) VALUES
     ('golf', 'Golf', 'Golf', null, 100, false),
     ('oklahomagin', 'Oklahoma Gin', 'Gin Rummy with special rules', 500, null, true),
@@ -121,5 +120,28 @@ INSERT INTO game_types (id, name, description, win_condition, loss_condition, is
     ('lowloss', 'Low Loss', 'Low Score Loss game', null, 5, false),
     ('pitch', 'Pitch', 'Pitch', 100, null, true),
     ('blitz', 'Blitz', 'Blitz', 100, null, true);
+
+-- Track rivalry stats per player and game type
+CREATE TABLE IF NOT EXISTS rivalry_player_stats (
+    id TEXT PRIMARY KEY,
+    rivalry_id TEXT NOT NULL REFERENCES rivalries(id) ON DELETE CASCADE,
+    player_id TEXT NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    game_type_id TEXT NOT NULL REFERENCES game_types(id),
+    total_games INTEGER DEFAULT 0,
+    wins INTEGER DEFAULT 0,
+    losses INTEGER DEFAULT 0,
+    avg_margin REAL,
+    min_win_margin INTEGER,
+    max_win_margin INTEGER,
+    min_loss_margin INTEGER,
+    max_loss_margin INTEGER,
+    last_10_results TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(rivalry_id, player_id, game_type_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rivalry_player_stats_rivalry ON rivalry_player_stats (rivalry_id);
+CREATE INDEX IF NOT EXISTS idx_rivalry_player_stats_player ON rivalry_player_stats (player_id);
+CREATE INDEX IF NOT EXISTS idx_rivalry_player_stats_game_type ON rivalry_player_stats (game_type_id);
 
 INSERT INTO "main"."sqids" ("id", "name", "owner") VALUES ('demo', 'demo', 'jason.krell@gmail.com');

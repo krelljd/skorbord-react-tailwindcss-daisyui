@@ -3,126 +3,67 @@ import { useState, useEffect, useRef } from 'react'
 const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
   const [selectedRivalry, setSelectedRivalry] = useState(null)
   const [rivalryDetails, setRivalryDetails] = useState(null)
+  const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  // Move chart hooks to top level to avoid hook order issues
-  const [selectedStat, setSelectedStat] = useState('average_margin');
-  const chartRef = useRef(null);
+  // Charting-related state/hooks removed
 
-  // Prepare line graph data for selected stat (always defined, but may be empty)
-  const chartLabels = rivalryDetails && rivalryDetails.game_type_stats ? rivalryDetails.game_type_stats.map(stat => stat.game_type_name) : [];
-  const chartData = rivalryDetails && rivalryDetails.game_type_stats ? rivalryDetails.game_type_stats.map(stat => {
-    if (selectedStat === 'win_rate') {
-      return stat.total_games > 0 && stat.wins !== undefined ? Math.round((stat.wins / stat.total_games) * 100) : 0;
-    }
-    return stat[selectedStat] !== undefined && stat[selectedStat] !== null ? stat[selectedStat] : 0;
-  }) : [];
+  // Only declare these once at the top level so they're always available
+  const playerStats = rivalryDetails?.player_stats || {};
+  const players = Array.isArray(rivalryDetails?.players) ? rivalryDetails.players : [];
+  // Use game_type_stats for stats table, fallback to game_types for listing
+  const gameTypes = Array.isArray(rivalryDetails?.game_type_stats) && rivalryDetails.game_type_stats.length > 0
+    ? rivalryDetails.game_type_stats.map(gt => ({
+        id: gt.game_type_id,
+        name: gt.game_type_name,
+        ...gt
+      }))
+    : (Array.isArray(rivalryDetails?.game_types) ? rivalryDetails.game_types : []);
+  const statFields = [
+    { key: 'win_rate', label: 'Win Rate (%)', className: 'text-primary' },
+    { key: 'average_margin', label: 'Avg Margin', className: 'text-info' },
+    { key: 'max_win_margin', label: 'Largest Win', className: 'text-success' },
+    { key: 'min_win_margin', label: 'Smallest Win', className: 'text-warning' },
+    { key: 'max_loss_margin', label: 'Largest Loss', className: 'text-error' },
+    { key: 'min_loss_margin', label: 'Smallest Loss', className: 'text-warning' },
+    { key: 'last_10_results', label: 'Last 10', className: 'font-mono' },
+  ];
 
-  useEffect(() => {
-    // Only run chart logic if chartRef and rivalryDetails are present
-    if (!selectedRivalry || !rivalryDetails || !chartRef.current) return;
-    import('chart.js/auto').then(({ default: Chart }) => {
-      if (chartRef.current.chartInstance) {
-        chartRef.current.chartInstance.destroy();
-      }
-      chartRef.current.chartInstance = new Chart(chartRef.current, {
-        type: 'line',
-        data: {
-          labels: chartLabels,
-          datasets: [{
-            label: selectedStat === 'win_rate' ? 'Win Rate (%)' : selectedStat.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            data: chartData,
-            borderColor: '#2563eb',
-            backgroundColor: 'rgba(37,99,235,0.2)',
-            tension: 0.3,
-            fill: true,
-          }],
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { display: false },
-            title: { display: true, text: 'Game Type Trends', color: '#fff' },
-          },
-          scales: {
-            x: { ticks: { color: '#fff' } },
-            y: { ticks: { color: '#fff' } },
-          },
-        },
-      });
-    });
-  }, [selectedStat, rivalryDetails, selectedRivalry, chartLabels, chartData]);
-
-  const API_URL = import.meta.env.VITE_API_URL
-  // Debug: log API_URL to verify it's loaded correctly
-  useEffect(() => {
-    // Only log in development
-    if (import.meta.env.DEV) {
-      console.log('RivalryStats: API_URL =', API_URL)
-    }
-  }, [API_URL])
-
-  const loadRivalryDetails = async (rivalryId) => {
-    setLoading(true)
-    setError('')
-
-    if (!API_URL) {
-      setError('API URL is not configured. Please set VITE_API_URL in your environment.')
-      setLoading(false)
-      return
-    }
-
+  // Function to handle rivalry selection
+  const selectRivalry = async (rivalry) => {
+    setSelectedRivalry(rivalry);
+    setLoading(true);
+    setError(null);
     try {
-      const response = await fetch(`${API_URL}/api/${sqid}/rivalries/${rivalryId}`)
-      if (!response.ok) {
-        throw new Error('Failed to load rivalry details')
-      }
-
-      const data = await response.json()
-      setRivalryDetails(data.data)
+      // Fetch rivalry details from API
+      const res = await fetch(`/api/demo/rivalries/${rivalry.id}`);
+      if (!res.ok) throw new Error('Failed to fetch rivalry details');
+      const data = await res.json();
+      if (!data.success || !data.data) throw new Error('Invalid API response');
+      setRivalryDetails(data.data);
     } catch (err) {
-      console.error('Failed to load rivalry details:', err)
-      setError(err.message || 'Failed to load rivalry details')
+      setError(err.message || 'Error fetching rivalry details');
+      setRivalryDetails(null);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
-
-  const selectRivalry = (rivalry) => {
-    setSelectedRivalry(rivalry)
-    loadRivalryDetails(rivalry.id)
-  }
-
-  const formatStreak = (streak) => {
-    if (!streak) return 'N/A'
-    return streak.split('').join(' ')
-  }
-
-  const formatMargin = (margin) => {
-    if (margin === null || margin === undefined) return 'N/A'
-    return margin.toString()
-  }
-
-  // Always show error if API_URL is missing
-  if (!API_URL) {
-    return (
-      <div className="space-y-6">
-        <div className="alert alert-error">
-          <span>API URL is not configured. Please set VITE_API_URL in your .env file and restart the dev server.</span>
-        </div>
-      </div>
-    )
-  }
-
   if (selectedRivalry && rivalryDetails) {
     // Fallback logic for player names in details view
     const detailPlayerNames = Array.isArray(rivalryDetails.player_names) && rivalryDetails.player_names.length > 0
       ? rivalryDetails.player_names
-      : (Array.isArray(rivalryDetails.players) && rivalryDetails.players.length > 0
-        ? rivalryDetails.players.map(p => p.name)
+      : (Array.isArray(players) && players.length > 0
+        ? players.map(p => p.name)
         : ['Unknown Players']);
-
-    // ...existing code...
+    // Robust fallback for missing/empty data
+    if (!players.length || !gameTypes.length) {
+      return (
+        <div className="space-y-6">
+          <div className="alert alert-warning">
+            <span>No player or game type data available for this rivalry.</span>
+          </div>
+        </div>
+      );
+    }
     return (
       <>
         <div className="space-y-6">
@@ -159,53 +100,193 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
                 </p>
               </div>
 
-              {/* Stats Per Game Type - DaisyUI professional display */}
-              <div className="space-y-6">
-                {rivalryDetails.game_type_stats.map(stat => (
-                  <div key={stat.game_type_id || stat.game_type_name} className="card bg-base-200 p-4">
-                    <h4 className="font-semibold mb-3 text-center">{stat.game_type_name}</h4>
-                    <div className="stats stats-vertical lg:stats-horizontal shadow mb-4">
-                      <div className="stat place-items-center">
-                        <div className="stat-title">Win Rate</div>
-                        <div className="stat-value text-primary">{stat.total_games > 0 && stat.wins !== undefined ? `${Math.round((stat.wins / stat.total_games) * 100)}%` : '0%'}</div>
-                        <div className="stat-desc">{stat.wins !== undefined ? stat.wins : 0}W / {stat.losses !== undefined ? stat.losses : 0}L</div>
-                      </div>
-                      <div className="stat place-items-center">
-                        <div className="stat-title">Avg Margin</div>
-                        <div className="stat-value text-info">{stat.average_margin !== undefined && stat.average_margin !== null ? stat.average_margin.toFixed(1) : 'N/A'}</div>
-                        <div className="stat-desc">Points per game</div>
-                      </div>
-                      <div className="stat place-items-center">
-                        <div className="stat-title">Largest Win</div>
-                        <div className="stat-value text-success">{formatMargin(stat.max_win_margin)}</div>
-                        <div className="stat-desc">Victory Margin</div>
-                      </div>
-                      <div className="stat place-items-center">
-                        <div className="stat-title">Smallest Win</div>
-                        <div className="stat-value text-warning">{formatMargin(stat.min_win_margin)}</div>
-                        <div className="stat-desc">Victory Margin</div>
-                      </div>
-                      <div className="stat place-items-center">
-                        <div className="stat-title">Largest Loss</div>
-                        <div className="stat-value text-error">{formatMargin(stat.max_loss_margin)}</div>
-                        <div className="stat-desc">Loss Margin</div>
-                      </div>
-                      <div className="stat place-items-center">
-                        <div className="stat-title">Smallest Loss</div>
-                        <div className="stat-value text-warning">{formatMargin(stat.min_loss_margin)}</div>
-                        <div className="stat-desc">Loss Margin</div>
-                      </div>
-                    </div>
-                    <div className="card bg-base-100 p-4 mb-4">
-                      <h5 className="font-semibold mb-2 text-sm">Last 10 Games</h5>
-                      <div className="text-center">
-                        <div className="text-lg font-mono tracking-wider">{formatStreak(stat.last_10_results)}</div>
-                        <p className="text-xs opacity-75 mt-2">W = Win, L = Loss (most recent on right)</p>
-                      </div>
+              {/* Stats Per Game Type Per Player - DaisyUI Table */}
+              <div className="space-y-8">
+                {gameTypes.map(gt => (
+                  <div key={gt.id || gt.name} className="card bg-base-200 p-4">
+                    <h4 className="font-semibold mb-3 text-center">{gt.name}</h4>
+                    <div className="overflow-x-auto">
+                      <table className="table table-zebra w-full text-xs md:text-sm">
+                        <thead>
+                          <tr>
+                            <th className="bg-base-300">Stat</th>
+                            {players.map(player => (
+                              <th key={player.id} className="bg-base-300 text-center">{player.name}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {statFields.map(field => (
+                              <tr key={field.key}>
+                                <td className="font-semibold">{field.label}</td>
+                                {players.map(player => {
+                                  let stats = null;
+                                  // Use game_type_id for lookup
+                                  if (playerStats[player.id] && playerStats[player.id][gt.id]) {
+                                    stats = playerStats[player.id][gt.id];
+                                  } else if (playerStats[player.id] && playerStats[player.id][gt.game_type_id]) {
+                                    stats = playerStats[player.id][gt.game_type_id];
+                                  } else if (playerStats[player.name] && playerStats[player.name][gt.id]) {
+                                    stats = playerStats[player.name][gt.id];
+                                  } else if (playerStats[player.name] && playerStats[player.name][gt.game_type_id]) {
+                                    stats = playerStats[player.name][gt.game_type_id];
+                                  } else {
+                                    stats = {};
+                                  }
+                                  let value = stats[field.key];
+                                  // Fix for avg_margin key
+                                  if (field.key === 'average_margin' && (value === undefined || value === null)) {
+                                    value = stats['avg_margin'];
+                                  }
+                                  if (field.key === 'win_rate') {
+                                    value = stats.total_games > 0 && stats.wins !== undefined ? `${Math.round((stats.wins / stats.total_games) * 100)}%` : '0%';
+                                  } else if (field.key === 'average_margin') {
+                                    value = value !== undefined && value !== null ? Number(value).toFixed(1) : 'N/A';
+                                  } else if (field.key === 'last_10_results') {
+                                    value = value ? value.split('').join(' ') : 'N/A';
+                                  } else if (value === undefined || value === null) {
+                                    value = 'N/A';
+                                  }
+                                  return (
+                                    <td key={player.id} className={`text-center ${field.className}`}>{value}</td>
+                                  );
+                                })}
+                              </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 ))}
               </div>
+
+              {/* Recent Games (all types) */}
+              {rivalryDetails.recent_games && rivalryDetails.recent_games.length > 0 && (
+                <div className="card bg-base-200 p-4">
+                  <h4 className="font-semibold mb-3">Recent Games</h4>
+                  <div className="space-y-2">
+                    {rivalryDetails.recent_games.slice(0, 5).map(game => (
+                      <div key={game.id} className="flex justify-between items-center text-sm">
+                        <span>{game.game_type_name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`badge ${game.is_winner ? 'badge-success' : 'badge-error'}`}>{game.is_winner ? 'W' : 'L'}</span>
+                          <span className="opacity-75">{new Date(game.completed_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Charting component removed as requested */}
+
+              <button 
+                className="btn btn-primary w-full"
+                onClick={backToSetup}
+              >
+                Start New Game
+              </button>
+            </>
+          )}
+        </div>
+      </>
+    );
+
+  // ...existing code...
+
+    return (
+      <>
+        <div className="space-y-6">
+          <div className="flex items-center gap-4 mb-6">
+            <button 
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                setSelectedRivalry(null)
+                setRivalryDetails(null)
+              }}
+            >
+              ← Back
+            </button>
+            <h2 className="text-xl font-bold">Rivalry Stats</h2>
+          </div>
+          {error && (
+            <div className="error-state">
+              <p>{error}</p>
+            </div>
+          )}
+          {loading ? (
+            <div className="flex justify-center">
+              <div className="loading-state"></div>
+            </div>
+          ) : (
+            <>
+              {/* Rivalry Header */}
+              <div className="card bg-base-200 p-4">
+                <h3 className="text-lg font-semibold text-center mb-2">
+                  {detailPlayerNames.join(' vs ')}
+                </h3>
+                <p className="text-center opacity-75">
+                  {rivalryDetails.total_games ? rivalryDetails.total_games : 0} total games
+                </p>
+              </div>
+
+              {/* Stats Per Game Type Per Player - DaisyUI Table */}
+              <div className="space-y-8">
+                {gameTypes.map(gt => (
+                  <div key={gt.id || gt.name} className="card bg-base-200 p-4">
+                    <h4 className="font-semibold mb-3 text-center">{gt.name}</h4>
+                    <div className="overflow-x-auto">
+                      <table className="table table-zebra w-full text-xs md:text-sm">
+                        <thead>
+                          <tr>
+                            <th className="bg-base-300">Stat</th>
+                            {players.map(player => (
+                              <th key={player.id} className="bg-base-300 text-center">{player.name}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {statFields.map(field => (
+                            <tr key={field.key}>
+                              <td className="font-semibold">{field.label}</td>
+                              {players.map(player => {
+                                // Robustly get stats for this player/gameType
+                                let stats = null;
+                                // Try id, then name fallback if needed
+                                if (playerStats[player.id] && playerStats[player.id][gt.id]) {
+                                  stats = playerStats[player.id][gt.id];
+                                } else if (playerStats[player.id] && playerStats[player.id][gt.name]) {
+                                  stats = playerStats[player.id][gt.name];
+                                } else if (playerStats[player.name] && playerStats[player.name][gt.id]) {
+                                  stats = playerStats[player.name][gt.id];
+                                } else if (playerStats[player.name] && playerStats[player.name][gt.name]) {
+                                  stats = playerStats[player.name][gt.name];
+                                } else {
+                                  stats = {};
+                                }
+                                let value = stats[field.key];
+                                if (field.key === 'win_rate') {
+                                  value = stats.total_games > 0 && stats.wins !== undefined ? `${Math.round((stats.wins / stats.total_games) * 100)}%` : '0%';
+                                } else if (field.key === 'average_margin') {
+                                  value = value !== undefined && value !== null ? Number(value).toFixed(1) : 'N/A';
+                                } else if (field.key === 'last_10_results') {
+                                  value = value ? value.split('').join(' ') : 'N/A';
+                                } else if (value === undefined || value === null) {
+                                  value = 'N/A';
+                                }
+                                return (
+                                  <td key={player.id} className={`text-center ${field.className}`}>{value}</td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               {/* Recent Games (all types) */}
               {rivalryDetails.recent_games && rivalryDetails.recent_games.length > 0 && (
                 <div className="card bg-base-200 p-4">

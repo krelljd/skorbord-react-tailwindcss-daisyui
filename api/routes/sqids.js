@@ -154,25 +154,30 @@ router.get('/rivalries', async (req, res, next) => {
       `, [rivalry.id]);
       rivalry.game_types = gameTypes;
 
-      // Aggregate stats per game type
+      // Aggregate stats per game type from rivalry_player_stats
       const stats = await db.query(`
         SELECT 
-          rs.game_type_id,
+          rps.game_type_id,
           gt.name as game_type_name,
-          rs.total_games,
-          rs.avg_margin as average_margin,
-          rs.min_win_margin,
-          rs.max_win_margin,
-          rs.min_loss_margin,
-          rs.max_loss_margin,
-          rs.last_10_results,
-          rs.updated_at
-        FROM rivalry_stats rs
-        JOIN game_types gt ON rs.game_type_id = gt.id
-        WHERE rs.rivalry_id = ?
-        ORDER BY rs.updated_at DESC
+          SUM(rps.total_games) as total_games,
+          AVG(rps.avg_margin) as average_margin,
+          MIN(rps.min_win_margin) as min_win_margin,
+          MAX(rps.max_win_margin) as max_win_margin,
+          MIN(rps.min_loss_margin) as min_loss_margin,
+          MAX(rps.max_loss_margin) as max_loss_margin,
+          GROUP_CONCAT(rps.last_10_results, '') as last_10_results,
+          MAX(rps.updated_at) as updated_at
+        FROM rivalry_player_stats rps
+        JOIN game_types gt ON rps.game_type_id = gt.id
+        WHERE rps.rivalry_id = ?
+        GROUP BY rps.game_type_id
+        ORDER BY updated_at DESC
       `, [rivalry.id]);
-      rivalry.game_type_stats = stats;
+      // Truncate last_10_results to last 10 chars for each game type
+      rivalry.game_type_stats = stats.map(stat => ({
+        ...stat,
+        last_10_results: stat.last_10_results ? stat.last_10_results.slice(-10) : '',
+      }));
     }
     res.json(createResponse(true, rivalries));
   } catch (error) {

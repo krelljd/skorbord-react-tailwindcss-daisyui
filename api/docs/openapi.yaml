@@ -47,6 +47,14 @@
           type: array
           items:
             $ref: '#/components/schemas/Player'
+        player_stats:
+          type: object
+          description: |
+            Per-player rivalry stats, keyed by player_id. Each value is an object keyed by game_type_id, with stat fields for that player and game type.
+          additionalProperties:
+            type: object
+            additionalProperties:
+              $ref: '#/components/schemas/RivalryPlayerStats'
         wins:
           type: integer
         losses:
@@ -93,6 +101,42 @@
         - total_games
         - recent_games
         - game_type_stats
+        - player_stats
+    RivalryPlayerStats:
+      type: object
+      properties:
+        total_games:
+          type: integer
+        wins:
+          type: integer
+        losses:
+          type: integer
+        avg_margin:
+          type: number
+          nullable: true
+        min_win_margin:
+          type: number
+          nullable: true
+        max_win_margin:
+          type: number
+          nullable: true
+        min_loss_margin:
+          type: number
+          nullable: true
+        max_loss_margin:
+          type: number
+          nullable: true
+        last_10_results:
+          type: string
+          description: Win/Loss string for last 10 games (e.g., "WWLLW...")
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - total_games
+        - wins
+        - losses
 
     GameTypeStats:
       type: object
