@@ -165,6 +165,9 @@ router.post('/', validateCreateGame, async (req, res, next) => {
 
       const gameId = generateUUID();
       
+      // Create or update rivalry and get rivalryId
+      const rivalryId = await createOrUpdateRivalry(db, sqid, game_type_id, finalPlayerIds);
+      
       // Determine win condition values
       let finalWinConditionType = win_condition_type;
       let finalWinConditionValue = win_condition_value;
@@ -179,16 +182,17 @@ router.post('/', validateCreateGame, async (req, res, next) => {
         id: gameId,
         sqid_id: sqid,
         game_type_id: game_type_id,
+        rivalry_id: rivalryId,
         started_at: new Date().toISOString(),
         finalized: false,
         win_condition_type: finalWinConditionType,
         win_condition_value: finalWinConditionValue
       };
 
-      // Insert game
+      // Insert game with rivalry_id
       await db.run(
-        'INSERT INTO games (id, sqid_id, game_type_id, started_at, finalized, win_condition_type, win_condition_value) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [gameData.id, gameData.sqid_id, gameData.game_type_id, gameData.started_at, gameData.finalized, gameData.win_condition_type, gameData.win_condition_value]
+        'INSERT INTO games (id, sqid_id, game_type_id, rivalry_id, started_at, finalized, win_condition_type, win_condition_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [gameData.id, gameData.sqid_id, gameData.game_type_id, gameData.rivalry_id, gameData.started_at, gameData.finalized, gameData.win_condition_type, gameData.win_condition_value]
       );
 
       // Insert initial stats for each player (score 0)
@@ -201,7 +205,8 @@ router.post('/', validateCreateGame, async (req, res, next) => {
       }
 
       // Create or update rivalry
-      await createOrUpdateRivalry(db, sqid, game_type_id, finalPlayerIds);
+      // Note: We don't call createOrUpdateRivalry here since it was already called above
+      // The rivalry is already created with the correct relationships
 
       return gameData;
     });
@@ -410,6 +415,7 @@ async function createOrUpdateRivalry(db, sqidId, gameTypeId, playerIds) {
       [rivalryId, gameTypeId]
     );
     // No longer initialize rivalry_stats. All stats aggregation uses rivalry_player_stats and games.
+    return rivalryId;
   } else {
     // If rivalry exists, ensure game type is linked
     const exists = await db.get(
@@ -423,6 +429,7 @@ async function createOrUpdateRivalry(db, sqidId, gameTypeId, playerIds) {
       );
       // No longer initialize rivalry_stats for this game type.
     }
+    return rivalry.id;
   }
 }
 
