@@ -36,7 +36,7 @@ Enable users to track, manage, and analyze scores for card games in real time, s
 ### 2.4 Rivalries
 
 - Rivalries are tracked per game type and player combination.
-- Rivalry stats include average margin of victory, last 10 results, and min/max win/loss margins.
+Rivalry stats include last 10 results and min/max win/loss margins.
 - Rivalries should be checked for existence at game creation, and autocreated if one doesn't exist.
 
 ### 2.5 Favorites & Randomizer

@@ -122,7 +122,6 @@ export function createResponse(success, data = null, error = null) {
 export function calculateRivalryStats(games) {
   if (!games || games.length === 0) {
     return {
-      avg_margin: 0,
       last_10_results: '',
       min_win_margin: null,
       max_win_margin: null,
@@ -134,16 +133,13 @@ export function calculateRivalryStats(games) {
 
   const totalGames = games.length;
   const last10 = games.slice(-10);
-  
-  let totalMargin = 0;
+
   let winMargins = [];
   let lossMargins = [];
   let results = '';
 
   for (const game of games) {
     const margin = Math.abs(game.score_difference || 0);
-    totalMargin += margin;
-    
     if (game.won) {
       winMargins.push(margin);
       results += 'W';
@@ -154,7 +150,6 @@ export function calculateRivalryStats(games) {
   }
 
   return {
-    avg_margin: totalGames > 0 ? totalMargin / totalGames : 0,
     last_10_results: last10.map(g => g.won ? 'W' : 'L').join(''),
     min_win_margin: winMargins.length > 0 ? Math.min(...winMargins) : null,
     max_win_margin: winMargins.length > 0 ? Math.max(...winMargins) : null,

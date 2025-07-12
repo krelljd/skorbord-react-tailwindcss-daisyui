@@ -494,7 +494,6 @@ async function updateRivalryStats(sqidId, gameTypeId, gameId) {
 
     let wins = 0, losses = 0, totalGames = playerGames.length;
     let winMargins = [], lossMargins = [], last10Results = '';
-    let totalMargin = 0;
     for (const game of playerGames) {
       // Get all scores for this game
       const scores = await db.query(`SELECT player_id, score FROM stats WHERE game_id = ?`, [game.id]);
@@ -516,9 +515,7 @@ async function updateRivalryStats(sqidId, gameTypeId, gameId) {
         lossMargins.push(margin);
         last10Results += 'L';
       }
-      totalMargin += Math.abs(margin);
     }
-    const avgMargin = totalGames > 0 ? totalMargin / totalGames : 0;
     const minWinMargin = winMargins.length > 0 ? Math.min(...winMargins) : (totalGames > 0 ? 0 : null);
     const maxWinMargin = winMargins.length > 0 ? Math.max(...winMargins) : (totalGames > 0 ? 0 : null);
     const minLossMargin = lossMargins.length > 0 ? Math.min(...lossMargins) : (totalGames > 0 ? 0 : null);
@@ -533,13 +530,13 @@ async function updateRivalryStats(sqidId, gameTypeId, gameId) {
     const statId = existing ? existing.id : generateUUID();
     if (existing) {
       await db.run(
-        `UPDATE rivalry_player_stats SET total_games = ?, wins = ?, losses = ?, avg_margin = ?, min_win_margin = ?, max_win_margin = ?, min_loss_margin = ?, max_loss_margin = ?, last_10_results = ?, updated_at = ? WHERE id = ?`,
-        [totalGames, wins, losses, avgMargin, minWinMargin, maxWinMargin, minLossMargin, maxLossMargin, last10, new Date().toISOString(), statId]
+        `UPDATE rivalry_player_stats SET total_games = ?, wins = ?, losses = ?, min_win_margin = ?, max_win_margin = ?, min_loss_margin = ?, max_loss_margin = ?, last_10_results = ?, updated_at = ? WHERE id = ?`,
+        [totalGames, wins, losses, minWinMargin, maxWinMargin, minLossMargin, maxLossMargin, last10, new Date().toISOString(), existing.id]
       );
     } else {
       await db.run(
-        `INSERT INTO rivalry_player_stats (id, rivalry_id, player_id, game_type_id, total_games, wins, losses, avg_margin, min_win_margin, max_win_margin, min_loss_margin, max_loss_margin, last_10_results, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [statId, rivalry.id, playerId, gameTypeId, totalGames, wins, losses, avgMargin, minWinMargin, maxWinMargin, minLossMargin, maxLossMargin, last10, new Date().toISOString()]
+        `INSERT INTO rivalry_player_stats (id, rivalry_id, player_id, game_type_id, total_games, wins, losses, min_win_margin, max_win_margin, min_loss_margin, max_loss_margin, last_10_results, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [statId, rivalry.id, playerId, gameTypeId, totalGames, wins, losses, minWinMargin, maxWinMargin, minLossMargin, maxLossMargin, last10, new Date().toISOString()]
       );
     }
   }

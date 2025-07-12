@@ -78,7 +78,7 @@ CREATE TABLE rivalry_stats (
     id TEXT PRIMARY KEY,
     rivalry_id TEXT NOT NULL REFERENCES rivalries(id) ON DELETE CASCADE,
     game_type_id TEXT NOT NULL REFERENCES game_types(id),
-    avg_margin REAL,
+    -- avg_margin column removed
     last_10_results TEXT, -- Store as string like "WWLWLLWWLW"
     min_win_margin INTEGER,
     max_win_margin INTEGER,
@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS rivalry_player_stats (
     total_games INTEGER DEFAULT 0,
     wins INTEGER DEFAULT 0,
     losses INTEGER DEFAULT 0,
-    avg_margin REAL,
+    -- avg_margin column removed
     min_win_margin INTEGER,
     max_win_margin INTEGER,
     min_loss_margin INTEGER,

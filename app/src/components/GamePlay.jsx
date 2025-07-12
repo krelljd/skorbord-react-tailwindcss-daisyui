@@ -3,7 +3,6 @@ import { useConnection } from '../contexts/ConnectionContext.jsx'
 import PlayerCard from './PlayerCard.jsx'
 
 const GamePlay = ({ 
-  // ...existing code...
   sqid, 
   game, 
   setCurrentGame, 

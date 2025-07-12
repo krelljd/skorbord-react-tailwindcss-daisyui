@@ -1,7 +1,7 @@
   /api/{sqid}/rivalries/{rivalryId}:
     get:
       summary: Get rivalry details
-      description: Retrieve detailed rivalry statistics, including win/loss, average margin, player names, per-game-type stats, and recent games.
+      description: Retrieve detailed rivalry statistics including per-player stats for each game type, player names, and recent games. Aggregate rivalry stats have been removed - only per-player stats are tracked.
       operationId: getRivalryDetails
       tags:
         - Statistics
@@ -55,50 +55,19 @@
             type: object
             additionalProperties:
               $ref: '#/components/schemas/RivalryPlayerStats'
-        wins:
-          type: integer
-        losses:
-          type: integer
-        average_margin:
-          type: number
-          nullable: true
-        min_win_margin:
-          type: number
-          nullable: true
-        max_win_margin:
-          type: number
-          nullable: true
-        min_loss_margin:
-          type: number
-          nullable: true
-        max_loss_margin:
-          type: number
-          nullable: true
-        total_games:
-          type: integer
-        last_10_results:
-          type: string
-          description: Win/Loss string for last 10 games (e.g., "WWLLW...")
         game_type_stats:
           type: array
+          description: List of game types played by this rivalry (no aggregate stats, just identifiers)
           items:
             $ref: '#/components/schemas/GameTypeStats'
         recent_games:
           type: array
           items:
             $ref: '#/components/schemas/RecentGameSummary'
-        stats_updated_at:
-          type: string
-          format: date-time
-          nullable: true
       required:
         - id
         - sqid_id
-        - game_type_id
         - player_names
-        - wins
-        - losses
-        - total_games
         - recent_games
         - game_type_stats
         - player_stats
@@ -140,23 +109,15 @@
 
     GameTypeStats:
       type: object
+      description: Game type information only (no aggregate stats)
       properties:
+        game_type_id:
+          type: string
         game_type_name:
           type: string
-        games_played:
-          type: integer
-        wins:
-          type: integer
-        losses:
-          type: integer
-        average_margin:
-          type: number
-          nullable: true
       required:
+        - game_type_id
         - game_type_name
-        - games_played
-        - wins
-        - losses
 
     RecentGameSummary:
       type: object
