@@ -10,9 +10,9 @@ This action plan outlines all steps required to build, document, and deploy the 
 - [ ] Step 1: Create and maintain `.env`, `.env.example`, and `.gitignore` files in both `api/` and `app/` directories.
 - [ ] Step 2: Add a `README.md` and `code_map.json` to the project root for onboarding and structure mapping.
 - [ ] Step 3: Set up ESLint and Prettier for both backend and frontend; add `lint` and `format` scripts to both `package.json` files.
-- [ ] Step 4: Scaffold the backend (`api/`) with Node.js, Express, Socket.IO, and DuckDB; add migration and seed scripts, and ensure a migration runner is available (e.g., `npm run migrate`, `npm run seed`).
+- [ ] Step 4: Scaffold the backend (`api/`) with Node.js, Express, Socket.IO, and SQLite; add migration and seed scripts, and ensure a migration runner is available (e.g., `npm run migrate`, `npm run seed`).
 - [ ] Step 5: Add `dev`, `lint`, and `format` scripts to both `api/package.json` and `app/package.json`.
-- [ ] Step 6: Implement the full DuckDB schema for all required entities (sqids, players, games, game_types, rivalries, stats, etc.), ensuring idempotent migrations and seed data for development.
+- [ ] Step 6: Implement the full SQLite schema for all required entities (sqids, players, games, game_types, rivalries, stats, etc.), ensuring idempotent migrations and seed data for development.
 - [ ] Step 7: Develop REST and WebSocket (Socket.IO) APIs for all CRUD operations and real-time updates, including middleware for Sqid-based access control and robust error handling.
 - [ ] Step 8: Add OpenAPI spec and `.http` files for API documentation and manual testing.
 - [ ] Step 9: Implement backend logic for all features: game management, scoring, rivalry tracking, stats aggregation, favoriting, randomizer, and real-time sync.

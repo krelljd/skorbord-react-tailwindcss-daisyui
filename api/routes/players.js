@@ -18,14 +18,18 @@ router.get('/', async (req, res, next) => {
     
     const players = await db.query(`
       SELECT 
-        p.*,
+        p.id,
+        p.sqid_id,
+        p.name,
+        p.created_at,
+        p.color,
         COUNT(DISTINCT g.id) as games_played,
         AVG(s.score) as avg_score
       FROM players p
       LEFT JOIN stats s ON p.id = s.player_id
       LEFT JOIN games g ON s.game_id = g.id AND g.finalized = true
       WHERE p.sqid_id = ?
-      GROUP BY p.id, p.name, p.created_at
+      GROUP BY p.id, p.name, p.created_at, p.color
       ORDER BY p.created_at ASC
     `, [sqid]);
     
@@ -55,17 +59,38 @@ router.post('/', validateCreatePlayer, async (req, res, next) => {
     if (existingPlayer) {
       throw new ConflictError('Player name already exists in this Sqid');
     }
-    // Create new player with normalized name
+    // DaisyUI color assignment logic
+    // 1. Get all colors already used for this sqid
+    const usedColorsRows = await db.query(
+      'SELECT color FROM players WHERE sqid_id = ? AND color IS NOT NULL',
+      [sqid]
+    );
+    const usedColors = usedColorsRows.map(row => row.color).filter(Boolean);
+    // 2. Get allowed DaisyUI colors
+    const PLAYER_COLORS = [
+      'primary', 'secondary', 'accent', 'info', 'success', 'warning', 'error', 'neutral'
+    ];
+    // 3. Find unused colors
+    const unusedColors = PLAYER_COLORS.filter(c => !usedColors.includes(c));
+    // 4. Select a color
+    let assignedColor;
+    if (unusedColors.length > 0) {
+      assignedColor = unusedColors[Math.floor(Math.random() * unusedColors.length)];
+    } else {
+      assignedColor = PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)];
+    }
+    // 5. Create new player with color
     const playerId = generateUUID();
     const playerData = {
       id: playerId,
       sqid_id: sqid,
-      name: name.trim(), // Store trimmed (but not lowercased) for display
-      created_at: new Date().toISOString()
+      name: name.trim(),
+      created_at: new Date().toISOString(),
+      color: assignedColor
     };
     await db.run(
-      'INSERT INTO players (id, sqid_id, name, created_at) VALUES (?, ?, ?, ?)',
-      [playerData.id, playerData.sqid_id, playerData.name, playerData.created_at]
+      'INSERT INTO players (id, sqid_id, name, created_at, color) VALUES (?, ?, ?, ?, ?)',
+      [playerData.id, playerData.sqid_id, playerData.name, playerData.created_at, playerData.color]
     );
     // Broadcast player created event
     req.io?.to(`/sqid/${sqid}`).emit('player_updated', {
@@ -90,7 +115,11 @@ router.get('/:playerId', validatePlayerAccess, async (req, res, next) => {
     // Get player with statistics
     const player = await db.get(`
       SELECT 
-        p.*,
+        p.id,
+        p.sqid_id,
+        p.name,
+        p.created_at,
+        p.color,
         COUNT(DISTINCT g.id) as games_played,
         COUNT(DISTINCT CASE WHEN g.winner_id = p.id THEN g.id END) as games_won,
         AVG(s.score) as avg_score,
@@ -100,7 +129,7 @@ router.get('/:playerId', validatePlayerAccess, async (req, res, next) => {
       LEFT JOIN stats s ON p.id = s.player_id
       LEFT JOIN games g ON s.game_id = g.id AND g.finalized = true
       WHERE p.id = ?
-      GROUP BY p.id, p.name, p.created_at
+      GROUP BY p.id, p.name, p.created_at, p.color
     `, [playerId]);
     
     // Get recent games
@@ -154,7 +183,7 @@ router.put('/:playerId', validatePlayerAccess, async (req, res, next) => {
     
     // Get updated player data
     const updatedPlayer = await db.get(
-      'SELECT * FROM players WHERE id = ?',
+      'SELECT id, sqid_id, name, created_at, color FROM players WHERE id = ?',
       [playerId]
     );
     

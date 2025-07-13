@@ -1,6 +1,6 @@
 # Skorbord Card Scoring App
 
-A modern, mobile-first card scoring application built with React, Express, and DuckDB. Real-time scoring with Socket.IO and beautiful UI with TailwindCSS and DaisyUI.
+A modern, mobile-first card scoring application built with React, Express, and SQLite. Real-time scoring with Socket.IO and beautiful UI with TailwindCSS and DaisyUI.
 
 ## Features
 
@@ -10,7 +10,7 @@ A modern, mobile-first card scoring application built with React, Express, and D
 - **Player Management**: Create and manage players with avatar colors
 - **Game Statistics**: Track wins, losses, and rivalries between players
 - **Beautiful UI**: Dark theme with TailwindCSS and DaisyUI components
-- **Fast & Reliable**: DuckDB backend for optimal performance on Raspberry Pi
+- **Fast & Reliable**: SQLite backend for optimal performance on Raspberry Pi
 
 ## Tech Stack
 
@@ -18,7 +18,7 @@ A modern, mobile-first card scoring application built with React, Express, and D
 
 - **Express.js** - Web framework
 - **Socket.IO** - Real-time communication
-- **DuckDB** - Embedded database (perfect for Raspberry Pi)
+- **SQLite** - Embedded database (perfect for Raspberry Pi)
 - **Express Validator** - Input validation
 - **Helmet & CORS** - Security middleware
 - **Rate Limiting** - API protection
@@ -175,7 +175,7 @@ cd api && npm start
 
 The application is optimized for Raspberry Pi deployment:
 
-- Lightweight DuckDB database
+- Lightweight SQLite database
 - Minimal resource usage
 - ARM-compatible dependencies
 - Efficient bundling and compression

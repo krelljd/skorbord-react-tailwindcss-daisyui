@@ -23,6 +23,7 @@ CREATE TABLE players (
     id TEXT PRIMARY KEY,
     sqid_id TEXT NOT NULL REFERENCES sqids(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
+    color TEXT, -- Added color column for DaisyUI color assignment
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(sqid_id, name)
 );

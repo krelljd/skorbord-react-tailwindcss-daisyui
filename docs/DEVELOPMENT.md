@@ -154,7 +154,16 @@ refactor: optimize database queries
 style: update UI components styling
 ```
 
+  
 ## API Design Principles
+  
+### Player Color Assignment
+
+- When a player is created via the API, a DaisyUI color is randomly assigned and stored in the database (`players.color`).
+- The color is unique per sqid (game/session) until all colors are used, then duplicates are allowed.
+- The color is included in all player-related API responses and used for UI styling.
+- The color cannot be edited after assignment.
+- Migration: See `002_add_player_color.sql` for schema change.
 
 ### RESTful Design
 

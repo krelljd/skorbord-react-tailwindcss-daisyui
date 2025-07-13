@@ -49,7 +49,7 @@ This checklist identifies missing instructions, unclear requirements, and questi
 ## Missing Technical Specifications
 
 - [x] **Complete database schema definition**
-  - Table structures for `sqids`, `players`, `games`, `game_types`, `rivalries`, and `stats` are defined in `duckdb_db_models.md`. All tables use explicit primary keys and appropriate foreign keys for referential integrity. Example:
+  - Table structures for `sqids`, `players`, `games`, `game_types`, `rivalries`, and `stats` are defined in `SQLite_db_models.md`. All tables use explicit primary keys and appropriate foreign keys for referential integrity. Example:
     - `sqids`: id (PK, TEXT), name (TEXT, unique), created_at (TIMESTAMP)
     - `players`: id (PK, TEXT), sqid_id (FK, TEXT), name (TEXT), joined_at (TIMESTAMP)
     - `games`: id (PK, TEXT), sqid_id (FK, TEXT), game_type_id (FK, TEXT), started_at (TIMESTAMP), ended_at (TIMESTAMP)
@@ -58,15 +58,15 @@ This checklist identifies missing instructions, unclear requirements, and questi
     - `stats`: id (PK, TEXT), game_id (FK, TEXT), player_id (FK, TEXT), score (INTEGER), created_at (TIMESTAMP)
   - Relationships: Foreign keys enforce that players/games/rivalries/stats reference valid sqids, game_types, and players. Each rivalry is unique per player pair and game type. Stats reference games and players.
   - Indexes: Primary keys on all tables. Indexes on foreign keys and on `stats(game_id)`, `stats(player_id)`, and `rivalries(game_type_id)` for fast lookups. Unique constraints as noted above.
-  - Data types: Use DuckDB types (TEXT for ids, INTEGER for scores, TIMESTAMP for dates). Field lengths are not strictly limited except for ids (UUIDv4 or short string, <= 36 chars).
+  - Data types: Use SQLite types (TEXT for ids, INTEGER for scores, TIMESTAMP for dates). Field lengths are not strictly limited except for ids (UUIDv4 or short string, <= 36 chars).
 
-- [x] **DuckDB connection and configuration details**
-  - Connection string format: `duckdb:///absolute/path/to/dbfile.db` for local persistent storage. Use a relative path in development, absolute in production.
+- [x] **SQLite connection and configuration details**
+  - Connection string format: `SQLite:///absolute/path/to/dbfile.db` for local persistent storage. Use a relative path in development, absolute in production.
   - Database file is always stored locally on disk for persistence. In-memory mode is not used in production.
-  - Backup strategy: Nightly copy of the DuckDB file to a separate backup directory. Use `duckdb .backup` command or OS-level file copy. Retain 7 days of rolling backups. For Pi, use a cron job and external USB or network storage if available.
+  - Backup strategy: Nightly copy of the SQLite file to a separate backup directory. Use `SQLite .backup` command or OS-level file copy. Retain 7 days of rolling backups. For Pi, use a cron job and external USB or network storage if available.
 
 - [x] **Migration strategy specifics**
-  - Migration tool: migrationRunner.js (cross-platform, works with DuckDB). All schema changes are versioned in `api/db/migrations/`.
+  - Migration tool: migrationRunner.js (cross-platform, works with SQLite). All schema changes are versioned in `api/db/migrations/`.
   - On migration failure in production: Log error, halt startup, and alert admin. Migrations are idempotent and can be retried safely after fixing the issue.
 
 ### API Specifications
@@ -208,7 +208,7 @@ This checklist identifies missing instructions, unclear requirements, and questi
   - Monitoring/logging: Use PM2 or systemd logs. Log errors to file and optionally send to remote syslog or cloud.
 
 - [x] **Production configuration**
-  - Env vars: `NODE_ENV`, `PORT`, `DUCKDB_PATH`, `SOCKET_IO_SECRET`, `ADMIN_EMAIL`, `LOG_LEVEL`.
+  - Env vars: `NODE_ENV`, `PORT`, `SQLite_PATH`, `SOCKET_IO_SECRET`, `ADMIN_EMAIL`, `LOG_LEVEL`.
   - Secrets: Store in `.env` (not committed), use Pi OS secrets or Docker secrets for deployment.
   - SSL/HTTPS: All traffic is HTTPS in production. Cloudflared runs as a service using the `skorbord` tunnel for secure public access. Caddy or Nginx may be used locally, but Cloudflared is the public ingress point.
   - Backups: Nightly DB file backup to external storage or cloud. Retain 7 days minimum.

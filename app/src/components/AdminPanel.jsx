@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getPlayerTextColorClass } from '../utils/playerColors'
 
 const AdminPanel = ({ 
   sqid, 
@@ -406,7 +407,35 @@ const AdminPanel = ({
       {/* Players Tab */}
       {activeTab === 'players' && (
         <div className="space-y-6">
-          
+          {/* Add New Player */}
+          <div className="card bg-base-100 p-6">
+            <h3 className="text-lg font-semibold mb-4">Add New Player</h3>
+            <div className="flex gap-3">
+              <input 
+                type="text"
+                className="input input-bordered flex-1"
+                placeholder="Enter player name"
+                value={newPlayerName}
+                onChange={(e) => setNewPlayerName(e.target.value)}
+                disabled={loading}
+                onKeyPress={(e) => e.key === 'Enter' && addPlayer()}
+              />
+              <button 
+                className="btn btn-primary"
+                onClick={addPlayer}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    Adding...
+                  </>
+                ) : (
+                  'Add Player'
+                )}
+              </button>
+            </div>
+          </div>
 
           {/* Existing Players */}
           <div className="space-y-3">
@@ -415,16 +444,18 @@ const AdminPanel = ({
             {players.length === 0 ? (
               <p className="text-center opacity-75 py-4">No players yet</p>
             ) : (
-              players.map(player => (
+              players.map(player => {
+                return (
                 <div key={player.id} className="card bg-base-200 p-4">
                   <div className="flex justify-between items-center">
                     <input 
                       type="text"
-                      className="input input-ghost flex-1 font-semibold"
+                      className={`input input-ghost flex-1 font-semibold ${getPlayerTextColorClass(player)}`}
                       value={player.name}
                       onChange={(e) => updatePlayerName(player.id, e.target.value)}
                       // Allow empty names, no validation or defaulting
                       disabled={loading}
+                      placeholder={`Player ${player.id}`}
                     />
                     <button 
                       className="btn btn-error btn-sm ml-2"
@@ -435,7 +466,8 @@ const AdminPanel = ({
                     </button>
                   </div>
                 </div>
-              ))
+                )
+              })
             )}
           </div>
         </div>

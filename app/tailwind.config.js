@@ -42,6 +42,37 @@ export default {
       }
     },
   },
+  // Safelist dynamic classes used with player colors
+  safelist: [
+    // Text colors for player names
+    'text-primary',
+    'text-secondary', 
+    'text-accent',
+    'text-info',
+    'text-success',
+    'text-warning',
+    'text-error',
+    'text-neutral',
+    'text-base-content', // fallback color
+    // Badge colors
+    'badge-primary',
+    'badge-secondary',
+    'badge-accent', 
+    'badge-info',
+    'badge-success',
+    'badge-warning',
+    'badge-error',
+    'badge-neutral',
+    // Ring colors for winner indicators
+    'ring-primary',
+    'ring-secondary',
+    'ring-accent',
+    'ring-info', 
+    'ring-success',
+    'ring-warning',
+    'ring-error',
+    'ring-neutral',
+  ],
   plugins: [
     require('daisyui'),
   ],

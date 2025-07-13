@@ -14,7 +14,7 @@
 - Always read relevant code and comments files in full before generating new code.
 - Ensure all code is well-documented and follows best practices for readability and maintainability. Comments should explain why certain decisions were made, not what the code does.
 - Ensure all database scripts are idempotent and can be run multiple times without causing issues.
-- Use DuckDB for the database and ensure all migrations are documented.
+- Use SQLite for the database and ensure all migrations are documented.
 - Use Context7 for code search, documentation, and developer experience.
 - Ensure all scripts are cross-platform compatible or provide alternatives for Windows/macOS/Linux.
 - The app will be deployed on a Raspberry Pi, so ensure all code is optimized for that environment.

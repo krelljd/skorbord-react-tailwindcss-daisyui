@@ -46,9 +46,9 @@ Rivalries should track last 10 results (e.g. WWWLLLWLWL), minimum and maximum wi
 
 ## Technology Requirements
 
-// Use migrationRunner.js for DuckDB migrations
-- Configure DuckDB to use a file path in .env
-`DATABASE_URL=duckdb:///db/cards-duckdb.db`
+// Use migrationRunner.js for SQLite migrations
+- Configure SQLite to use a file path in .env
+`DATABASE_URL=SQLite:///db/cards-SQLite.db`
 - Migrations directory should be `api/db/migrations/`
 - Add migration scripts as .sql files in migrations directory.
 

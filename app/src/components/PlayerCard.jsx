@@ -1,14 +1,15 @@
 import { useState, useRef } from 'react'
+import { getPlayerTextColorClass, getPlayerBadgeColorClass, getPlayerRingColorClass } from '../utils/playerColors'
 
 const PlayerCard = ({ 
-  playerId, 
-  playerName, 
+  player, // expects { id, name, color, ... }
   score, 
   onScoreChange, 
   disabled, 
   scoreTally,
   isWinner 
 }) => {
+  if (!player) return null;
   const [isUpdating, setIsUpdating] = useState(false)
   const [glowingButton, setGlowingButton] = useState(null) // 'plus' or 'minus'
   const longPressTimer = useRef(null)
@@ -17,23 +18,19 @@ const PlayerCard = ({
 
   const handleScoreChange = async (change) => {
     if (disabled) return
-    
     // Trigger button glow effect
     const buttonType = change > 0 ? 'plus' : 'minus'
     setGlowingButton(buttonType)
-    
     // Clear any existing glow timeout
     if (glowTimeoutRef.current) {
       clearTimeout(glowTimeoutRef.current)
     }
-    
     // Remove glow after brief period
     glowTimeoutRef.current = setTimeout(() => {
       setGlowingButton(null)
     }, 200)
-    
     try {
-      await onScoreChange(playerId, change)
+      await onScoreChange(player.id, change)
     } catch (error) {
       // Handle error silently, onScoreChange should handle error display
     }
@@ -74,22 +71,24 @@ const PlayerCard = ({
   }
 
   return (
-    <div className={`player-card relative ${isWinner ? 'ring-4 ring-success' : ''}`}>
+    <div className={`player-card relative ${isWinner && player.color ? `ring-4 ${getPlayerRingColorClass(player)}` : ''}`}>
       {/* Winner Badge */}
-      {isWinner && (
-        <div className="absolute -top-2 -left-2 badge badge-success">
+      {isWinner && player.color && (
+        <div className={`absolute -top-2 -left-2 badge ${getPlayerBadgeColorClass(player)}`}>
           🏆 Winner
         </div>
       )}
 
-      {/* Player Name */}
+      {/* Player Name as heading with DaisyUI/Tailwind color */}
       <div className="text-center mb-4">
-        <h3 className="text-lg font-semibold">{playerName}</h3>
+        <h3 className={`text-lg font-semibold ${getPlayerTextColorClass(player)}`}>
+          {player.name}
+        </h3>
       </div>
 
       {/* Score Display with Tally Superscript */}
-      <div className="score-display relative flex items-center justify-center">
-        {score}
+      <div className="score-display relative flex items-center justify-center text-3xl font-bold">
+        {typeof score !== 'undefined' ? score : (typeof player.score !== 'undefined' ? player.score : 0)}
         {scoreTally && scoreTally.total !== 0 && (
           <sup
             key={scoreTally.timestamp} // Force re-render and restart animation when timestamp changes

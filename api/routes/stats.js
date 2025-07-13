@@ -19,7 +19,8 @@ router.get('/', validateGameAccess, async (req, res, next) => {
     const stats = await db.query(`
       SELECT 
         s.*,
-        p.name as player_name
+        p.name as player_name,
+        p.color
       FROM stats s
       JOIN players p ON s.player_id = p.id
       WHERE s.game_id = ?

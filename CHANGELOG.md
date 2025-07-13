@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Complete Express.js API server with REST endpoints
 - Real-time WebSocket support using Socket.IO
-- DuckDB database integration with migrations
+- SQLite database integration with migrations
 - Comprehensive input validation and error handling
 - Rate limiting and security middleware (Helmet, CORS)
 - Support for multiple card game types (Hearts, Spades, Cribbage, etc.)
@@ -54,9 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Technical Specifications
 
-- **Backend**: Node.js 18+, Express.js, Socket.IO, DuckDB
+- **Backend**: Node.js 18+, Express.js, Socket.IO, SQLite
 - **Frontend**: React 18, Vite, TailwindCSS, DaisyUI
-- **Database**: DuckDB with SQL schema and migrations
+- **Database**: SQLite with SQL schema and migrations
 - **Testing**: Jest (backend), Vitest (frontend), Testing Library
 - **Documentation**: OpenAPI 3.0, Swagger UI, Markdown
 - **Development**: VS Code integration, ESLint, Prettier

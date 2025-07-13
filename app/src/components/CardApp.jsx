@@ -278,6 +278,7 @@ const CardApp = () => {
         <RivalryStats
           sqid={sqid}
           rivalries={rivalries}
+          players={players}
           backToSetup={backToSetup}
         />
       )}

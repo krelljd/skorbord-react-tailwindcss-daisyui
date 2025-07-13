@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useConnection } from '../contexts/ConnectionContext.jsx'
+import { getPlayerBadgeColorClassById } from '../utils/playerColors'
 import PlayerCard from './PlayerCard.jsx'
 
 const GamePlay = ({ 
@@ -309,7 +310,7 @@ const GamePlay = ({
           {typeof game.win_condition_value !== 'undefined' ? ` ${game.win_condition_value}` : ' [No win_condition_value]'}
         </p>
         {winner && (
-          <div className="badge badge-success badge-lg mt-2">
+          <div className={`badge ${getPlayerBadgeColorClassById(winner.player_id)} badge-lg mt-2`}>
             🏆 {winner.player_name} Wins!
           </div>
         )}
@@ -332,18 +333,26 @@ const GamePlay = ({
 
       {/* Player Cards */}
       <div className="grid gap-4">
-        {gameStats.map(stat => (
-          <PlayerCard
-            key={stat.player_id}
-            playerId={stat.player_id}
-            playerName={stat.player_name}
-            score={stat.score}
-            onScoreChange={updateScore}
-            disabled={loading || game.status === 'completed'}
-            scoreTally={scoreTallies[stat.player_id]}
-            isWinner={winner?.player_id === stat.player_id}
-          />
-        ))}
+        {gameStats.map(stat => {
+          // Construct player object for PlayerCard
+          const player = {
+            id: stat.player_id,
+            name: stat.player_name,
+            color: stat.color, // color should be present in stat
+            score: stat.score
+          };
+          return (
+            <PlayerCard
+              key={player.id}
+              player={player}
+              score={stat.score}
+              onScoreChange={updateScore}
+              disabled={loading || game.status === 'completed'}
+              scoreTally={scoreTallies[player.id]}
+              isWinner={winner?.player_id === player.id}
+            />
+          );
+        })}
       </div>
 
       {/* Game Controls */}

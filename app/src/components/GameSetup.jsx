@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useConnection } from '../contexts/ConnectionContext.jsx'
+import { getPlayerColor, getPlayerColorByName } from '../utils/playerColors'
 
 const GameSetup = ({ 
   sqid, 
@@ -259,12 +260,17 @@ const getRivalryPlayerNames = (rivalry) => {
               <option value="">Use players below...</option>
               {rivalries.map(rivalry => {
                 let names = [];
+                let players = [];
                 if (Array.isArray(rivalry.player_names) && rivalry.player_names.length > 0 && rivalry.player_names.every(name => typeof name === 'string' && name.trim() !== '')) {
                   names = rivalry.player_names;
+                  // Create player objects with names as IDs for color consistency
+                  players = names.map(name => ({ id: name, name }));
                 } else if (Array.isArray(rivalry.players) && rivalry.players.length > 0 && rivalry.players.every(p => typeof p.name === 'string' && p.name.trim() !== '')) {
                   names = rivalry.players.map(p => p.name);
+                  players = rivalry.players;
                 } else {
                   names = ['Unknown Players'];
+                  players = [{ id: 'unknown', name: 'Unknown Players' }];
                 }
                 return (
                   <option key={rivalry.id} value={rivalry.id}>

@@ -6,7 +6,7 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ## 1. Project Structure & Tooling
 
-- Use `api/` for backend (Node.js, Express, Socket.IO, DuckDB, ES6+ JavaScript)
+- Use `api/` for backend (Node.js, Express, Socket.IO, SQLite, ES6+ JavaScript)
 - Use `app/` for frontend (Vite, React, TailwindCSS, DaisyUI, ES6+ JavaScript)
 - Ensure all code and markdown content is standards-compliant
 - Follow naming conventions and folder structure as per documentation
@@ -19,9 +19,9 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ## 2. Database & Data Model
 
-- Implement DuckDB to store data across sessions
+- Implement SQLite to store data across sessions
 - Ensure all database scripts are idempotent and can be run multiple times without causing issues
-- Use DuckDB for all persistent storage
+- Use SQLite for all persistent storage
 - Add migration scripts for schema updates and document all migrations
 - Seed with sample data for local development
 - Document schema and migrations

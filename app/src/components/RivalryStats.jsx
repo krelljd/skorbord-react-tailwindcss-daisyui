@@ -1,10 +1,33 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
+import { getPlayerTextColorClass, getPlayerTextColorClassByName } from '../utils/playerColors'
 
-const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
+const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) => {
   const [selectedRivalry, setSelectedRivalry] = useState(null)
   const [rivalryDetails, setRivalryDetails] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [localPlayers, setLocalPlayers] = useState([])
+
+  // Load players specifically for color information
+  React.useEffect(() => {
+    const loadPlayers = async () => {
+      try {
+        const response = await fetch(`${__API_URL__}/api/${sqid}/players`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.data) {
+            console.log('Loaded localPlayers:', data.data);
+            setLocalPlayers(data.data)
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load players for colors:', err)
+      }
+    }
+    if (sqid) {
+      loadPlayers()
+    }
+  }, [sqid])
 
   // Only declare these once at the top level so they're always available
   const playerStats = rivalryDetails?.player_stats || {};
@@ -33,7 +56,7 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
     setError(null);
     try {
       // Fetch rivalry details from API
-      const res = await fetch(`/api/${sqid}/rivalries/${rivalry.id}`);
+      const res = await fetch(`${__API_URL__}/api/${sqid}/rivalries/${rivalry.id}`);
       if (!res.ok) throw new Error('Failed to fetch rivalry details');
       const data = await res.json();
       if (!data.success || !data.data) throw new Error('Invalid API response');
@@ -91,7 +114,18 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
             {/* Rivalry Header */}
             <div className="card bg-base-200 p-4">
               <h3 className="text-lg font-semibold text-center mb-2">
-                {detailPlayerNames.join(' vs ')}
+                {detailPlayerNames.map((playerName, index) => (
+                  <span key={index}>
+                    <span className={(() => {
+                      const colorClass = getPlayerTextColorClassByName(playerName, localPlayers);
+                      console.log(`DEBUG: Player "${playerName}" -> Color class: "${colorClass}"`);
+                      return colorClass;
+                    })()}>
+                      {playerName}
+                    </span>
+                    {index < detailPlayerNames.length - 1 && ' vs '}
+                  </span>
+                ))}
               </h3>
               <p className="text-center opacity-75">
                 Per-player rivalry statistics
@@ -123,7 +157,7 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
 
                       return (
                         <div key={player.id} className="card bg-base-100 p-4">
-                          <h5 className="font-bold text-center mb-4 text-primary">{player.name}</h5>
+                          <h5 className={`font-bold text-center mb-4 ${getPlayerTextColorClassByName(player.name, localPlayers)}`}>{player.name}</h5>
                           
                           <div className="stats stats-vertical shadow w-full">
                             {statFields.map(field => {
@@ -169,33 +203,76 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
               ))}
             </div>
 
-            {/* Recent Games (all types) */}
+            {/* Recent Games Timeline */}
             {rivalryDetails.recent_games && rivalryDetails.recent_games.length > 0 && (
               <div className="card bg-base-200 p-4">
                 <h4 className="font-semibold mb-4">Recent Games</h4>
-                <div className="grid gap-3">
-                  {rivalryDetails.recent_games.slice(0, 5).map(game => {
+                <ul className="timeline timeline-vertical">
+                  {rivalryDetails.recent_games.slice(0, 5).map((game, index) => {
                     // Determine winner's name (assume game.winner_name exists, fallback to game.winner_id/player mapping if needed)
                     let winnerName = game.winner_name;
                     if (!winnerName && Array.isArray(players)) {
                       const winnerPlayer = players.find(p => p.id === game.winner_id);
                       winnerName = winnerPlayer ? winnerPlayer.name : 'Unknown';
                     }
+                    
+                    const isEven = index % 2 === 0;
+                    const gameDate = new Date(game.completed_at).toLocaleDateString();
+                    
                     return (
-                      <div key={game.id} className="card bg-base-100 p-3 shadow-sm">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                            <span className="badge badge-success badge-sm">{winnerName || 'Unknown'}</span>
-                            <span className="font-medium">{game.game_type_name}</span>
+                      <li key={game.id}>
+                        {index > 0 && <hr className="bg-base-300" />}
+                        
+                        {/* Date on alternating sides */}
+                        {isEven ? (
+                          <div className="timeline-start text-sm font-mono opacity-75">
+                            <span className={getPlayerTextColorClassByName(winnerName, localPlayers)}>{winnerName || 'Unknown'}</span>
                           </div>
-                          <span className="text-sm opacity-75">
-                            {new Date(game.completed_at).toLocaleDateString()}
-                          </span>
+                        ) : null}
+                        
+                        {/* Card icon in the middle */}
+                        <div className="timeline-middle">
+                          {/* Playing cards SVG icon, 20% smaller */}
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="h-4 w-4 text-success"
+                          >
+                            <rect x="3" y="5" width="11.2" height="14.4" rx="1.6" fill="#222" stroke="#fff" strokeWidth="1.2" />
+                            <rect x="7" y="1" width="11.2" height="14.4" rx="1.6" fill="#444" stroke="#fff" strokeWidth="1.2" />
+                            <text x="9" y="11" fontSize="5.6" fill="#fff" fontWeight="bold" fontFamily="monospace">A</text>
+                            <text x="13.5" y="6" fontSize="5.6" fill="#fff" fontWeight="bold" fontFamily="monospace">♠</text>
+                          </svg>
                         </div>
-                      </div>
+                        
+                        {/* Game info box on alternating sides */}
+                        {isEven ? (
+                        <div className="timeline-end timeline-box bg-base-100">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs opacity-75">{game.game_type_name}</span>
+                            <p className="text-xs opacity-75">{gameDate}</p>
+                          </div>
+                        </div>
+                        ) : (
+                          <>
+                            <div className="timeline-start timeline-box bg-base-100">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs opacity-75">{game.game_type_name}</span>
+                              </div>
+                              <p className="text-xs opacity-75">{gameDate}</p>
+                            </div>
+                            <div className="timeline-end text-sm font-mono opacity-75">
+                              <span className={getPlayerTextColorClassByName(winnerName, localPlayers)}>{winnerName || 'Unknown'}</span>
+                            </div>
+                          </>
+                        )}
+                        
+                        {index < rivalryDetails.recent_games.slice(0, 5).length - 1 && <hr className="bg-base-300" />}
+                      </li>
                     );
                   })}
-                </div>
+                </ul>
               </div>
             )}
 
@@ -210,6 +287,16 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
       </div>
     );
   }
+  
+  // Debugging: Log component state
+  console.log('RIVALRY STATS RENDER - localPlayers:', localPlayers);
+  console.log('RIVALRY STATS RENDER - sqid:', sqid);
+  
+  // Define detailPlayerNames for the main view (when no rivalry is selected)
+  const detailPlayerNames = localPlayers && localPlayers.length > 0 
+    ? localPlayers.map(p => p.name)
+    : ['Jason', 'Riley']; // fallback for testing
+  
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4 mb-6">
@@ -256,7 +343,17 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
                 >
                   <div className="flex flex-col gap-2">
                     <h3 className="font-semibold text-lg">
-                      {listPlayerNames.join(' vs ')}
+                      {listPlayerNames.map((playerName, index) => {
+                        const colorClass = getPlayerTextColorClassByName(playerName, localPlayers);
+                        return (
+                          <span key={index}>
+                            <span className={colorClass}>
+                              {playerName}
+                            </span>
+                            {index < listPlayerNames.length - 1 && ' vs '}
+                          </span>
+                        );
+                      })}
                     </h3>
                     {/* Show all game types played by this rivalry */}
                     {Array.isArray(rivalry.game_types) && rivalry.game_types.length > 0 && (
