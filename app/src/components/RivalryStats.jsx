@@ -98,55 +98,72 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
               </p>
             </div>
 
-            {/* Stats Per Game Type Per Player - DaisyUI Table */}
+            {/* Stats Per Game Type Per Player - DaisyUI Stats */}
             <div className="space-y-8">
               {gameTypes.map(gt => (
                 <div key={gt.id || gt.name} className="card bg-base-200 p-4">
-                  <h4 className="font-semibold mb-3 text-center">{gt.name}</h4>
-                  <div className="overflow-x-auto">
-                    <table className="table table-zebra w-full text-xs md:text-sm">
-                      <thead>
-                        <tr>
-                          <th className="bg-base-300">Stat</th>
-                          {players.map(player => (
-                            <th key={player.id} className="bg-base-300 text-center">{player.name}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {statFields.map(field => (
-                          <tr key={field.key}>
-                            <td className="font-semibold">{field.label}</td>
-                            {players.map(player => {
-                              let stats = null;
-                              // Use game_type_id for lookup
-                              if (playerStats[player.id] && playerStats[player.id][gt.id]) {
-                                stats = playerStats[player.id][gt.id];
-                              } else if (playerStats[player.id] && playerStats[player.id][gt.game_type_id]) {
-                                stats = playerStats[player.id][gt.game_type_id];
-                              } else if (playerStats[player.name] && playerStats[player.name][gt.id]) {
-                                stats = playerStats[player.name][gt.id];
-                              } else if (playerStats[player.name] && playerStats[player.name][gt.game_type_id]) {
-                                stats = playerStats[player.name][gt.game_type_id];
-                              } else {
-                                stats = {};
-                              }
+                  <h4 className="font-semibold mb-6 text-center text-lg">{gt.name}</h4>
+                  
+                  {/* Player Stats Grid */}
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {players.map(player => {
+                      let stats = null;
+                      // Use game_type_id for lookup
+                      if (playerStats[player.id] && playerStats[player.id][gt.id]) {
+                        stats = playerStats[player.id][gt.id];
+                      } else if (playerStats[player.id] && playerStats[player.id][gt.game_type_id]) {
+                        stats = playerStats[player.id][gt.game_type_id];
+                      } else if (playerStats[player.name] && playerStats[player.name][gt.id]) {
+                        stats = playerStats[player.name][gt.id];
+                      } else if (playerStats[player.name] && playerStats[player.name][gt.game_type_id]) {
+                        stats = playerStats[player.name][gt.game_type_id];
+                      } else {
+                        stats = {};
+                      }
+
+                      return (
+                        <div key={player.id} className="card bg-base-100 p-4">
+                          <h5 className="font-bold text-center mb-4 text-primary">{player.name}</h5>
+                          
+                          <div className="stats stats-vertical shadow w-full">
+                            {statFields.map(field => {
                               let value = stats[field.key];
+                              let desc = '';
+                              
                               if (field.key === 'win_rate') {
                                 value = stats.total_games > 0 && stats.wins !== undefined ? `${Math.round((stats.wins / stats.total_games) * 100)}%` : '0%';
+                                desc = `${stats.wins || 0}/${stats.total_games || 0} games`;
                               } else if (field.key === 'last_10_results') {
                                 value = value ? value.split('').join(' ') : 'N/A';
-                              } else if (value === undefined || value === null) {
-                                value = 'N/A';
+                                desc = 'Recent form';
+                              } else if (field.key === 'max_win_margin') {
+                                desc = 'Biggest victory';
+                                value = value !== undefined && value !== null ? value : 'N/A';
+                              } else if (field.key === 'min_win_margin') {
+                                desc = 'Closest victory';
+                                value = value !== undefined && value !== null ? value : 'N/A';
+                              } else if (field.key === 'max_loss_margin') {
+                                desc = 'Worst defeat';
+                                value = value !== undefined && value !== null ? value : 'N/A';
+                              } else if (field.key === 'min_loss_margin') {
+                                desc = 'Closest defeat';
+                                value = value !== undefined && value !== null ? value : 'N/A';
+                              } else {
+                                value = value !== undefined && value !== null ? value : 'N/A';
                               }
+                              
                               return (
-                                <td key={player.id} className={`text-center ${field.className}`}>{value}</td>
+                                <div key={field.key} className="stat">
+                                  <div className="stat-title text-xs">{field.label}</div>
+                                  <div className={`stat-value text-lg ${field.className}`}>{value}</div>
+                                  {desc && <div className="stat-desc text-xs">{desc}</div>}
+                                </div>
                               );
                             })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -155,8 +172,8 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
             {/* Recent Games (all types) */}
             {rivalryDetails.recent_games && rivalryDetails.recent_games.length > 0 && (
               <div className="card bg-base-200 p-4">
-                <h4 className="font-semibold mb-3">Recent Games</h4>
-                <div className="space-y-2">
+                <h4 className="font-semibold mb-4">Recent Games</h4>
+                <div className="grid gap-3">
                   {rivalryDetails.recent_games.slice(0, 5).map(game => {
                     // Determine winner's name (assume game.winner_name exists, fallback to game.winner_id/player mapping if needed)
                     let winnerName = game.winner_name;
@@ -165,12 +182,16 @@ const RivalryStats = ({ sqid, rivalries, backToSetup }) => {
                       winnerName = winnerPlayer ? winnerPlayer.name : 'Unknown';
                     }
                     return (
-                      <div key={game.id} className="flex justify-between items-center text-sm">
-                        <div className="indicator">
-                          <span className="indicator-item badge badge-success badge-xs">{winnerName || 'Unknown'}</span>
-                          <span>{game.game_type_name}</span>
+                      <div key={game.id} className="card bg-base-100 p-3 shadow-sm">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <span className="badge badge-success badge-sm">{winnerName || 'Unknown'}</span>
+                            <span className="font-medium">{game.game_type_name}</span>
+                          </div>
+                          <span className="text-sm opacity-75">
+                            {new Date(game.completed_at).toLocaleDateString()}
+                          </span>
                         </div>
-                        <span className="opacity-75">{new Date(game.completed_at).toLocaleDateString()}</span>
                       </div>
                     );
                   })}
