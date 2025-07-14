@@ -221,27 +221,112 @@ const CardApp = () => {
   return (
     <div className="mobile-container slide-in-bottom">
       {/* Header with navigation */}
-      <div className="navbar bg-base-300 rounded-lg mb-4">
+      <div className="navbar bg-base-200 rounded-lg mb-4">
         <div className="navbar-start">
+          {/* Mobile dropdown menu */}
           <div className="dropdown">
-            <div tabIndex={0} role="button" className="btn btn-ghost btn-circle">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            <div tabIndex={0} role="button" className="btn btn-ghost lg:hidden">
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className="h-5 w-5" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth="2" 
+                  d="M4 6h16M4 12h8m-8 6h16" 
+                />
               </svg>
             </div>
-            <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+            <ul 
+              tabIndex={0} 
+              className="menu menu-sm dropdown-content bg-base-100 text-base-content rounded-box z-[1] mt-3 w-52 p-2 shadow"
+            >
               {currentGame && !currentGame.finalized && (
-                <li><a onClick={viewCurrentGame}>Current Game</a></li>
+                <li>
+                  <button 
+                    onClick={viewCurrentGame}
+                    className={currentView === 'playing' ? 'active' : ''}
+                  >
+                    Current Game
+                  </button>
+                </li>
               )}
-              <li><a onClick={startNewGame}>New Game</a></li>
-              <li><a onClick={viewRivalryStats}>Rivalry Stats</a></li>
-              <li><a onClick={openAdminPanel}>Admin</a></li>
+              <li>
+                <button 
+                  onClick={startNewGame}
+                  className={currentView === 'setup' ? 'active' : ''}
+                >
+                  New Game
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={viewRivalryStats}
+                  className={currentView === 'rivalry-stats' ? 'active' : ''}
+                >
+                  Rivalry Stats
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={openAdminPanel}
+                  className={currentView === 'admin' ? 'active' : ''}
+                >
+                  Admin
+                </button>
+              </li>
             </ul>
           </div>
+          
+          {/* Brand/Logo */}
+          <button className="btn btn-ghost text-xl font-bold">Skorbord</button>
         </div>
-        <div className="navbar-center">
-          <h1 className="text-xl font-bold">Skorbord</h1>
+        
+        {/* Desktop horizontal menu */}
+        <div className="navbar-center hidden lg:flex">
+          <ul className="menu menu-horizontal px-1">
+            {currentGame && !currentGame.finalized && (
+              <li>
+                <button 
+                  onClick={viewCurrentGame}
+                  className={currentView === 'playing' ? 'active' : ''}
+                >
+                  Current Game
+                </button>
+              </li>
+            )}
+            <li>
+              <button 
+                onClick={startNewGame}
+                className={currentView === 'setup' ? 'active' : ''}
+              >
+                New Game
+              </button>
+            </li>
+            <li>
+              <button 
+                onClick={viewRivalryStats}
+                className={currentView === 'rivalry-stats' ? 'active' : ''}
+              >
+                Rivalry Stats
+              </button>
+            </li>
+            <li>
+              <button 
+                onClick={openAdminPanel}
+                className={currentView === 'admin' ? 'active' : ''}
+              >
+                Admin
+              </button>
+            </li>
+          </ul>
         </div>
+        
+        {/* Right side - kept empty as requested */}
         <div className="navbar-end">
         </div>
       </div>
@@ -284,9 +369,7 @@ const CardApp = () => {
         <AdminPanel
           sqid={sqid}
           gameTypes={gameTypes}
-          players={players}
           setGameTypes={setGameTypes}
-          setPlayers={setPlayers}
           backToSetup={backToSetup}
         />
       )}
