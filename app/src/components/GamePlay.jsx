@@ -293,7 +293,7 @@ const GamePlay = ({
     return (
       <div className="text-center">
         <p>No active game found.</p>
-        <button className="btn btn-primary mt-4" onClick={backToSetup}>
+        <button className="btn btn-primary mt-2" onClick={backToSetup}>
           Start New Game
         </button>
       </div>
@@ -301,7 +301,7 @@ const GamePlay = ({
   }
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-3 pb-8">
       {/* Game Header */}
       <div className="text-center">
         <h2 className="text-2xl font-bold">{game.game_type_name || <span className="text-error">[No game_type_name]</span>}</h2>
@@ -313,16 +313,7 @@ const GamePlay = ({
           <div className={`badge ${getPlayerBadgeColorClassById(winner.player_id)} badge-lg mt-2`}>
             🏆 {winner.player_name} Wins!
           </div>
-        )}
-        {/* Debug: Show game object in development, collapsible */}
-        {process.env.NODE_ENV === 'development' && (
-          <details className="mt-2">
-            <summary className="cursor-pointer text-xs opacity-70 select-none">Show game object (dev only)</summary>
-            <pre className="text-xs text-left bg-base-200 p-2 mt-2 rounded max-w-full overflow-x-auto">
-              {JSON.stringify(game, null, 2)}
-            </pre>
-          </details>
-        )}
+        )} 
       </div>
 
       {error && (
@@ -383,12 +374,12 @@ const GamePlay = ({
       {(() => {
         const hasUnsavedScores = Object.values(scoreTallies).some(tally => tally && tally.total !== 0)
         return winner && (
-          <div className="fixed bottom-0 left-0 w-full bg-base-200 bg-opacity-95 z-50 flex flex-col justify-center items-center py-4 shadow-lg">
+          <div className="fixed bottom-0 left-0 w-full bg-base-200 bg-opacity-95 z-50 flex flex-col justify-center items-center py-2 shadow-lg">
             <button
               className="btn btn-primary btn-lg w-11/12 max-w-md text-lg"
               onClick={finalizeGame}
               disabled={loading || hasUnsavedScores}
-              style={{ fontSize: '5vw', minHeight: '3rem' }}
+              style={{ fontSize: '5vw', minHeight: '2.5rem' }}
               title={hasUnsavedScores ? 'Waiting for score changes to be saved' : ''}
             >
               {loading ? (
@@ -401,7 +392,7 @@ const GamePlay = ({
               )}
             </button>
             {hasUnsavedScores && (
-              <div className="text-warning text-xs mt-2 text-center" style={{ fontSize: '3.5vw' }}>
+              <div className="text-warning text-xs mt-1 text-center" style={{ fontSize: '3vw' }}>
                 Please wait for all score changes to be saved before finalizing.
               </div>
             )}
