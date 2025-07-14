@@ -85,7 +85,7 @@ Access tasks via `Ctrl+Shift+P` → "Tasks: Run Task"
 Interactive API documentation is available at:
 
 - Development: <http://localhost:2424/api/docs>
-- Production: <https://skorbord.app/api/docs>
+- Production: <https://cards.skorbord.app/api/docs>
 
 The API follows OpenAPI 3.0 specification and includes:
 

@@ -46,7 +46,7 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
     origin: process.env.NODE_ENV === 'production'
-      ? ['https://skorbord.app']
+      ? ['https://cards.skorbord.app']
       : ['http://localhost:2424'],
     methods: ['GET', 'POST'],
     credentials: true
@@ -87,7 +87,7 @@ app.use(limiter);
 // CORS configuration
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? ['https://skorbord.app']
+    ? ['https://cards.skorbord.app']
     : ['http://localhost:2424'],
   credentials: true
 }));

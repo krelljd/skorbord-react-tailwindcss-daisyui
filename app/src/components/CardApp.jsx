@@ -243,9 +243,6 @@ const CardApp = () => {
           <h1 className="text-xl font-bold">Skorbord</h1>
         </div>
         <div className="navbar-end">
-          <div className="badge badge-outline badge-sm">
-            {sqid}
-          </div>
         </div>
       </div>
 

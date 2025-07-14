@@ -18,4 +18,4 @@
 - Use Context7 for code search, documentation, and developer experience.
 - Ensure all scripts are cross-platform compatible or provide alternatives for Windows/macOS/Linux.
 - The app will be deployed on a Raspberry Pi, so ensure all code is optimized for that environment.
-- Apps will be hosted at `https://skorbord.app/` in Production and via `http://localhost:2424` in Development.
+- Apps will be hosted at `https://cards.skorbord.app/` in Production and via `http://localhost:2424` in Development.

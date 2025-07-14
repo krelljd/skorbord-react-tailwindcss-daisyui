@@ -58,7 +58,7 @@ export default defineConfig({
     }
   },
   define: {
-    __API_URL__: JSON.stringify(process.env.NODE_ENV === 'production' ? 'https://skorbord.app' : 'http://localhost:2424')
+    __API_URL__: JSON.stringify(process.env.NODE_ENV === 'production' ? 'https://cards.skorbord.app' : 'http://localhost:2424')
   },
   test: {
     globals: true,

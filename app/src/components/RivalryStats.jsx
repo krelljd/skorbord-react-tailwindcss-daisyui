@@ -291,11 +291,9 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
   // Debugging: Log component state
   console.log('RIVALRY STATS RENDER - localPlayers:', localPlayers);
   console.log('RIVALRY STATS RENDER - sqid:', sqid);
+  console.log('RIVALRY STATS RENDER - rivalries:', rivalries);
   
-  // Define detailPlayerNames for the main view (when no rivalry is selected)
-  const detailPlayerNames = localPlayers && localPlayers.length > 0 
-    ? localPlayers.map(p => p.name)
-    : ['Jason', 'Riley']; // fallback for testing
+  // Don't use detailPlayerNames here since we're not in a selected rivalry context
   
   return (
     <div className="space-y-6">

@@ -183,13 +183,13 @@ info:
   version: 1.0.0
   contact:
     name: Skorbord Support
-    url: https://skorbord.app
+    url: https://cards.skorbord.app
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
 
 servers:
-  - url: https://skorbord.app/api
+  - url: https://cards.skorbord.app/api
     description: Production server
   - url: http://localhost:2424/api
     description: Development server
@@ -963,4 +963,4 @@ tags:
 
 externalDocs:
   description: Skorbord API Documentation
-  url: https://skorbord.app/docs
+  url: https://cards.skorbord.app/docs

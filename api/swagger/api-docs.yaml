@@ -5,11 +5,11 @@ info:
   version: 1.0.0
   contact:
     name: Skorbord Development Team
-    url: https://skorbord.app
+    url: https://cards.skorbord.app
 servers:
   - url: http://localhost:2424
     description: Development server
-  - url: https://skorbord.app
+  - url: https://cards.skorbord.app
     description: Production server
 
 paths:
