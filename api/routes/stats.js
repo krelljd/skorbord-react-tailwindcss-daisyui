@@ -98,7 +98,7 @@ router.post('/', validateGameAccess, validateUpdateStats, async (req, res, next)
 
     // After update, fetch all player stats for this game
     const allStats = await db.query(
-      'SELECT s.*, p.name as player_name FROM stats s JOIN players p ON s.player_id = p.id WHERE s.game_id = ? ORDER BY s.created_at ASC',
+      'SELECT s.*, p.name as player_name, p.color FROM stats s JOIN players p ON s.player_id = p.id WHERE s.game_id = ? ORDER BY s.created_at ASC',
       [gameId]
     );
 
@@ -172,7 +172,8 @@ router.put('/:playerId', validateGameAccess, async (req, res, next) => {
     const updatedStat = await db.get(`
       SELECT 
         s.*,
-        p.name as player_name
+        p.name as player_name,
+        p.color
       FROM stats s
       JOIN players p ON s.player_id = p.id
       WHERE s.game_id = ? AND s.player_id = ?

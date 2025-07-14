@@ -329,7 +329,7 @@ const GamePlay = ({
           const player = {
             id: stat.player_id,
             name: stat.player_name,
-            color: stat.color, // color should be present in stat
+            color: stat.color || 'primary', // Fallback to 'primary' if color is missing
             score: stat.score
           };
           return (
