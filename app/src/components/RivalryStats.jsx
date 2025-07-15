@@ -288,11 +288,6 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
     );
   }
   
-  // Debugging: Log component state
-  console.log('RIVALRY STATS RENDER - localPlayers:', localPlayers);
-  console.log('RIVALRY STATS RENDER - sqid:', sqid);
-  console.log('RIVALRY STATS RENDER - rivalries:', rivalries);
-  
   // Don't use detailPlayerNames here since we're not in a selected rivalry context
   
   return (
@@ -357,7 +352,7 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
                     {Array.isArray(rivalry.game_types) && rivalry.game_types.length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {rivalry.game_types.map(gt => (
-                          <span key={gt.id} className="badge badge-outline">
+                          <span key={gt.id} className="badge badge-outline badge-al">
                             {gt.name}
                           </span>
                         ))}

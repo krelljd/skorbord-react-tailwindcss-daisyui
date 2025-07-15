@@ -77,23 +77,7 @@ export default {
     require('daisyui'),
   ],
   daisyui: {
-    themes: [
-      {
-        dark: {
-          "primary": "#8b5cf6",
-          "secondary": "#a78bfa", 
-          "accent": "#c4b5fd",
-          "neutral": "#1f2937",
-          "base-100": "#111827",
-          "base-200": "#1f2937",
-          "base-300": "#374151",
-          "info": "#06b6d4",
-          "success": "#10b981",
-          "warning": "#f59e0b",
-          "error": "#ef4444",
-        },
-      },
-    ],
+    themes: ["light", "dark"], // Use DaisyUI's built-in themes
     darkTheme: "dark",
     base: true,
     styled: true,
