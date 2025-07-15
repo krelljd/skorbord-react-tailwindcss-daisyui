@@ -65,7 +65,7 @@ export default defineConfig({
   define: {
     __API_URL__: JSON.stringify(process.env.NODE_ENV === 'production' 
       ? 'https://cards.skorbord.app' 
-      : 'http://localhost:3000')
+      : 'http://localhost:2525')
   },
   server: {
     port: 2424,

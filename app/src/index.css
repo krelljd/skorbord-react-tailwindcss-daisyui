@@ -1,6 +1,7 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark;
+}
 
 /* Custom CSS for mobile optimization and touch-friendly UI */
 @layer base {
@@ -36,63 +37,75 @@
 @layer components {
   /* Touch-friendly button styling */
   .btn-touch {
-    @apply min-h-[44px] min-w-[44px] touch-none;
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: none;
     /* Ensure buttons meet minimum touch target size */
   }
   
   /* Score adjustment buttons */
   .score-btn {
-    @apply btn btn-touch btn-primary text-xl font-bold rounded-xl;
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: none;
+    font-size: 1.25rem;
+    font-weight: 700;
+    border-radius: 0.75rem;
     /* Large, easy to press score adjustment buttons */
+    /* DaisyUI classes: btn btn-primary are applied in JSX */
   }
   
   /* Player card styling */
   .player-card {
-    @apply card bg-base-200 shadow-xl p-4 m-2;
+    padding: 1rem;
+    margin: 0.5rem;
     /* Consistent card styling for players */
+    /* DaisyUI classes: card bg-base-200 shadow-xl are applied in JSX */
   }
   
   /* Mobile-first container */
   .mobile-container {
-    @apply container mx-auto px-4 py-6 max-w-lg;
+    max-width: 32rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
     /* Mobile-optimized container width */
   }
 
   /* Score display styling */
   .score-display {
-    @apply text-4xl font-bold text-center mb-4;
+    font-size: 2.25rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 1rem;
     /* Large, readable score display */
   }
 
   /* Game type selector */
   .game-type-select {
-    @apply select select-bordered select-lg w-full text-lg;
+    width: 100%;
+    font-size: 1.125rem;
     /* Large, touch-friendly dropdown */
+    /* DaisyUI classes: select select-bordered select-lg are applied in JSX */
   }
 
   /* Modal styling for mobile */
   .modal-mobile {
-    @apply modal-box max-w-sm mx-4;
+    max-width: 24rem;
+    margin-left: 1rem;
+    margin-right: 1rem;
     /* Mobile-optimized modal size */
+    /* DaisyUI classes: modal-box are applied in JSX */
   }
 
-  /* Loading state */
-  .loading-state {
-    @apply loading loading-spinner loading-lg text-primary;
-    /* Consistent loading spinner */
-  }
-
-  /* Error state */
-  .error-state {
-    @apply alert alert-error;
-    /* Consistent error display */
-  }
-
-  /* Success state */
-  .success-state {
-    @apply alert alert-success;
-    /* Consistent success display */
-  }
+  /* Loading state - DaisyUI classes applied in JSX */
+  
+  /* Error state - DaisyUI classes applied in JSX */
+  
+  /* Success state - DaisyUI classes applied in JSX */
 }
 
 @layer utilities {
@@ -111,8 +124,18 @@
   
   /* Score tally animation */
   .score-tally {
-    @apply absolute top-0 right-0 bg-accent text-accent-content px-2 py-1 rounded-lg text-sm font-bold;
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 700;
     animation: scoreTallyFadeInOut 3s ease-in-out forwards;
+    /* DaisyUI classes: bg-accent text-accent-content are applied in JSX */
   }
 
   /* Score tally fade in/out animation - smooth and performant */
@@ -154,15 +177,11 @@
 
   /* Connection status indicator */
   .connection-indicator {
-    @apply fixed top-4 right-4 badge badge-sm z-50;
-  }
-  
-  .connection-connected {
-    @apply badge-success;
-  }
-  
-  .connection-disconnected {
-    @apply badge-error;
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 50;
+    /* DaisyUI classes: badge badge-sm badge-success/badge-error are applied in JSX */
   }
   
   /* Slide in animations for mobile views */

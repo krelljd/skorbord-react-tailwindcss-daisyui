@@ -127,9 +127,6 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
                   </span>
                 ))}
               </h3>
-              <p className="text-center opacity-75">
-                Per-player rivalry statistics
-              </p>
             </div>
 
             {/* Stats Per Game Type Per Player - DaisyUI Stats */}
@@ -157,7 +154,7 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
 
                       return (
                         <div key={player.id} className="card bg-base-100 p-4">
-                          <h5 className={`font-bold text-center mb-4 ${getPlayerTextColorClassByName(player.name, localPlayers)}`}>{player.name}</h5>
+                          <h3 className={`font-bold text-center mb-4 ${getPlayerTextColorClassByName(player.name, localPlayers)}`}>{player.name}</h3>
                           
                           <div className="stats stats-vertical shadow w-full">
                             {statFields.map(field => {
@@ -316,10 +313,6 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
           </button>
         </div>
       ) : (
-        <>
-          <p className="text-center opacity-75 mb-6">
-            Select a rivalry to view detailed statistics
-          </p>
           <div className="space-y-3">
             {rivalries.map(rivalry => {
               // Fallback logic for player names in rivalry list
@@ -363,7 +356,6 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
               );
             })}
           </div>
-        </>
       )}
     </div>
   )

@@ -1,9 +1,13 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    tailwindcss()  // New Tailwind CSS v4 Vite plugin
+  ],
   server: {
     port: 2424,
     host: true,
@@ -58,7 +62,7 @@ export default defineConfig({
     }
   },
   define: {
-    __API_URL__: JSON.stringify(process.env.NODE_ENV === 'production' ? 'https://cards.skorbord.app' : 'http://localhost:2424')
+    __API_URL__: JSON.stringify(process.env.NODE_ENV === 'production' ? 'https://cards.skorbord.app' : 'http://localhost:2525')
   },
   test: {
     globals: true,
