@@ -322,83 +322,75 @@ const GamePlay = ({
         </div>
       )}
 
-      {/* Player Cards */}
-      <div className="grid gap-4">
-        {gameStats.map(stat => {
-          // Construct player object for PlayerCard
-          const player = {
-            id: stat.player_id,
-            name: stat.player_name,
-            color: stat.color || 'primary', // Fallback to 'primary' if color is missing
-            score: stat.score
-          };
-          return (
-            <PlayerCard
-              key={player.id}
-              player={player}
-              score={stat.score}
-              onScoreChange={updateScore}
-              disabled={loading || game.finalized}
-              scoreTally={scoreTallies[player.id]}
-              isWinner={winner?.player_id === player.id}
-            />
-          );
-        })}
+      {/* Player Cards Container */}
+      <div className="mb-8">
+        <div className="grid gap-4">
+          {gameStats.map(stat => {
+            // Construct player object for PlayerCard
+            const player = {
+              id: stat.player_id,
+              name: stat.player_name,
+              color: stat.color || 'primary', // Fallback to 'primary' if color is missing
+              score: stat.score
+            };
+            return (
+              <PlayerCard
+                key={player.id}
+                player={player}
+                score={stat.score}
+                onScoreChange={updateScore}
+                disabled={loading || game.finalized}
+                scoreTally={scoreTallies[player.id]}
+                isWinner={winner?.player_id === player.id}
+              />
+            );
+          })}
+        </div>
       </div>
 
-      {/* Game Controls */}
-      <div className="flex gap-2">
-        {!game.finalized && (
-          <>
+      {/* Finalize Button Container (fixed bottom) */}
+      <div className="fixed bottom-0 left-0 w-full bg-base-200 bg-opacity-95 z-50 flex flex-col justify-center items-center py-2 shadow-lg">
+        {/* New Game Button (only shown when game is finalized) */}
+        {game.finalized ? (
+          <div className="flex gap-2 w-11/12 max-w-md mb-2">
             <button 
-              className="btn btn-outline flex-1"
+              className="btn btn-primary flex-1"
               onClick={backToSetup}
             >
-              Abandon Game
+              New Game
             </button>
-          </>
-        )}
-        
-        {game.finalized && (
-          <button 
-            className="btn btn-primary flex-1"
-            onClick={backToSetup}
-          >
-            New Game
-          </button>
-        )}
-      </div>
-
-      {/* Finalize Game Button (appears at bottom when winner is determined) */}
-      {/* Derived state: are there unsaved score changes? */}
-      {(() => {
-        const hasUnsavedScores = Object.values(scoreTallies).some(tally => tally && tally.total !== 0)
-        return winner && (
-          <div className="fixed bottom-0 left-0 w-full bg-base-200 bg-opacity-95 z-50 flex flex-col justify-center items-center py-2 shadow-lg">
-            <button
-              className="btn btn-primary btn-lg w-11/12 max-w-md text-lg"
-              onClick={finalizeGame}
-              disabled={loading || hasUnsavedScores}
-              style={{ fontSize: '5vw', minHeight: '2.5rem' }}
-              title={hasUnsavedScores ? 'Waiting for score changes to be saved' : ''}
-            >
-              {loading ? (
-                <>
-                  <span className="loading loading-spinner loading-sm"></span>
-                  Finalizing...
-                </>
-              ) : (
-                'Finalize Game'
-              )}
-            </button>
-            {hasUnsavedScores && (
-              <div className="text-warning text-xs mt-1 text-center" style={{ fontSize: '2vw' }}>
-                Please wait for all score changes to be saved before finalizing.
-              </div>
-            )}
           </div>
-        )
-      })()}
+        ) : null}
+        {/* Finalize Game Button (appears when winner is determined) */}
+        {winner && (() => {
+          const hasUnsavedScores = Object.values(scoreTallies).some(tally => tally && tally.total !== 0)
+          return (
+            <>
+              <button
+                className="btn btn-primary btn-lg w-11/12 max-w-md text-lg"
+                onClick={finalizeGame}
+                disabled={loading || hasUnsavedScores}
+                style={{ fontSize: '5vw', minHeight: '2.5rem' }}
+                title={hasUnsavedScores ? 'Waiting for score changes to be saved' : ''}
+              >
+                {loading ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    Finalizing...
+                  </>
+                ) : (
+                  'Finalize Game'
+                )}
+              </button>
+              {hasUnsavedScores && (
+                <div className="text-warning text-xs mt-1 text-center" style={{ fontSize: '2vw' }}>
+                  Please wait for all score changes to be saved before finalizing.
+                </div>
+              )}
+            </>
+          )
+        })()}
+      </div>
     </div>
   )
 }

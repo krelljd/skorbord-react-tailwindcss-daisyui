@@ -136,25 +136,81 @@ export function calculateRivalryStats(games) {
 
   let winMargins = [];
   let lossMargins = [];
+  let tieMargins = [];
   let results = '';
 
+  // Multi-player margin calculation
   for (const game of games) {
-    const margin = Math.abs(game.score_difference || 0);
-    if (game.won) {
-      winMargins.push(margin);
-      results += 'W';
+    // Expect game.players: [{id, score, isWinner, isTie}]
+    if (!game.players || !Array.isArray(game.players)) {
+      // Fallback to legacy logic if not multi-player
+      const margin = Math.abs(game.score_difference || 0);
+      if (game.won) {
+        winMargins.push(margin);
+        results += 'W';
+      } else {
+        lossMargins.push(margin);
+        results += 'L';
+      }
+      continue;
+    }
+
+    // Find highest score
+    const scores = game.players.map(p => p.score);
+    const maxScore = Math.max(...scores);
+    const winners = game.players.filter(p => p.score === maxScore);
+    const isTie = winners.length > 1;
+
+    for (const player of game.players) {
+      if (isTie) {
+        tieMargins.push(0);
+        results += 'T';
+      } else if (player.score === maxScore) {
+        // Winner: margin is winner's score minus next highest
+        const nextBest = Math.max(...scores.filter(s => s !== maxScore));
+        const margin = nextBest !== -Infinity ? player.score - nextBest : 0;
+        winMargins.push(margin);
+        results += 'W';
+      } else {
+        // Loser: margin is winner's score minus their score
+        const margin = maxScore - player.score;
+        lossMargins.push(margin);
+        results += 'L';
+      }
+    }
+  }
+
+  // Only show last 10 results, grouped by game
+  let last10Results = '';
+  for (const game of last10) {
+    if (!game.players || !Array.isArray(game.players)) {
+      last10Results += (game.won ? 'W' : 'L');
     } else {
-      lossMargins.push(margin);
-      results += 'L';
+      // For multi-player, concatenate results for each player
+      const scores = game.players.map(p => p.score);
+      const maxScore = Math.max(...scores);
+      const winners = game.players.filter(p => p.score === maxScore);
+      const isTie = winners.length > 1;
+      for (const player of game.players) {
+        if (isTie) {
+          last10Results += 'T';
+        } else if (player.score === maxScore) {
+          last10Results += 'W';
+        } else {
+          last10Results += 'L';
+        }
+      }
     }
   }
 
   return {
-    last_10_results: last10.map(g => g.won ? 'W' : 'L').join(''),
+    last_10_results: last10Results,
     min_win_margin: winMargins.length > 0 ? Math.min(...winMargins) : null,
     max_win_margin: winMargins.length > 0 ? Math.max(...winMargins) : null,
     min_loss_margin: lossMargins.length > 0 ? Math.min(...lossMargins) : null,
     max_loss_margin: lossMargins.length > 0 ? Math.max(...lossMargins) : null,
+    min_tie_margin: tieMargins.length > 0 ? Math.min(...tieMargins) : null,
+    max_tie_margin: tieMargins.length > 0 ? Math.max(...tieMargins) : null,
     total_games: totalGames
   };
 }
