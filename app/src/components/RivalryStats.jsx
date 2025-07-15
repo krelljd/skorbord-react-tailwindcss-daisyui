@@ -352,7 +352,7 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
                     {Array.isArray(rivalry.game_types) && rivalry.game_types.length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {rivalry.game_types.map(gt => (
-                          <span key={gt.id} className="badge badge-outline badge-al">
+                          <span key={gt.id} className="badge badge-outline badge-info">
                             {gt.name}
                           </span>
                         ))}

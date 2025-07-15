@@ -63,6 +63,11 @@ export default {
     'badge-warning',
     'badge-error',
     'badge-neutral',
+    // Badge style variants
+    'badge-soft',
+    'badge-outline',
+    'badge-dash',
+    'badge-ghost',
     // Ring colors for winner indicators
     'ring-primary',
     'ring-secondary',
