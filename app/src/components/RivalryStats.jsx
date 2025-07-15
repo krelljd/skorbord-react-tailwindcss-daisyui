@@ -154,7 +154,7 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
 
                       return (
                         <div key={player.id} className="card bg-base-100 p-4">
-                          <h3 className={`font-bold text-center mb-4 ${getPlayerTextColorClassByName(player.name, localPlayers)}`}>{player.name}</h3>
+                          <h2 className={`font-bold text-center mb-4 ${getPlayerTextColorClassByName(player.name, localPlayers)}`}>{player.name}</h2>
 
                           <div className="stats stats-vertical shadow w-full">
                             {statFields.map(field => {
@@ -248,8 +248,8 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
                         <div className="timeline-end timeline-box bg-base-100">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-xs opacity-75">{game.game_type_name}</span>
-                            <p className="text-xs opacity-75">{gameDate}</p>
                           </div>
+                          <p className="text-xs opacity-75">{gameDate}</p>
                         </div>
                         ) : (
                           <>

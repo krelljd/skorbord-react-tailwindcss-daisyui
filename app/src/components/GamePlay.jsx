@@ -130,14 +130,14 @@ const GamePlay = ({
   }
 
   const checkForWinner = (stats) => {
-    if (game.status === 'completed') return
+    if (game.finalized) return
 
     const winCondition = game.win_condition_value
-    const isWinCondition = game.win_condition_type === 'win'
+    const winConditionType = game.win_condition_type
 
     let gameWinner = null
 
-    if (isWinCondition) {
+    if (winConditionType === 'win') {
       // For win conditions: first player to reach or exceed the win condition wins
       // If multiple players reach it, highest score wins
       const qualifiedPlayers = stats.filter(stat => stat.score >= winCondition)
@@ -146,7 +146,7 @@ const GamePlay = ({
           current.score > max.score ? current : max
         )
       }
-    } else {
+    } else if (winConditionType === 'lose') {
       // For loss conditions: if any player meets or exceeds the loss condition,
       // the winner is the player with the lowest score (among all players)
       const anyLoser = stats.some(stat => stat.score >= winCondition)
@@ -338,7 +338,7 @@ const GamePlay = ({
               player={player}
               score={stat.score}
               onScoreChange={updateScore}
-              disabled={loading || game.status === 'completed'}
+              disabled={loading || game.finalized}
               scoreTally={scoreTallies[player.id]}
               isWinner={winner?.player_id === player.id}
             />
@@ -348,7 +348,7 @@ const GamePlay = ({
 
       {/* Game Controls */}
       <div className="flex gap-2">
-        {game.status === 'active' && !winner && (
+        {!game.finalized && (
           <>
             <button 
               className="btn btn-outline flex-1"
@@ -359,7 +359,7 @@ const GamePlay = ({
           </>
         )}
         
-        {game.status === 'completed' && (
+        {game.finalized && (
           <button 
             className="btn btn-primary flex-1"
             onClick={backToSetup}
@@ -392,7 +392,7 @@ const GamePlay = ({
               )}
             </button>
             {hasUnsavedScores && (
-              <div className="text-warning text-xs mt-1 text-center" style={{ fontSize: '3vw' }}>
+              <div className="text-warning text-xs mt-1 text-center" style={{ fontSize: '2vw' }}>
                 Please wait for all score changes to be saved before finalizing.
               </div>
             )}

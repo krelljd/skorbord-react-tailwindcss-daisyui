@@ -104,9 +104,9 @@ const CardApp = () => {
   // Socket event handlers
   const handleGameUpdate = (gameData) => {
     setCurrentGame(gameData)
-    if (gameData.status === 'active') {
+    if (!gameData.finalized) {
       setCurrentView('playing')
-    } else if (gameData.status === 'completed') {
+    } else if (gameData.finalized) {
       // Game finished, show rivalry stats
       setCurrentView('rivalry-stats')
       // Reload rivalries to get updated stats
