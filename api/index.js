@@ -172,6 +172,14 @@ app.use('/api/:sqid/games/:gameId/stats', validateSquid, statsRoutes);
 app.use('/api/:sqid/rivalries', validateSquid, rivalryRoutes);
 app.use('/api/:sqid/game_types/:gameTypeId/favorite', validateSquid, favoritesRoutes);
 
+// Serve static files from frontend build
+app.use(express.static(join(__dirname, 'app', 'dist')));
+
+// SPA fallback for React Router
+app.get('*', (req, res) => {
+  res.sendFile(join(__dirname, 'app', 'dist', 'index.html'));
+});
+
 // Socket.IO middleware and handlers
 // io.use(socketAuthMiddleware);
 io.on('connection', (socket) => handleConnection(io, socket));

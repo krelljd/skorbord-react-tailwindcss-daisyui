@@ -184,7 +184,7 @@ The application is optimized for Raspberry Pi deployment:
 
 ### Environment Variables
 
-**Backend (.env)**
+#### Backend (.env)
 
 ```bash
 PORT=2424
@@ -193,7 +193,7 @@ NODE_ENV=development
 SOCKET_CORS_ORIGIN=http://localhost:3000
 ```
 
-**Frontend (.env)**
+#### Frontend (.env)
 
 ```bash
 VITE_API_URL=http://localhost:2424
