@@ -155,7 +155,7 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
                       return (
                         <div key={player.id} className="card bg-base-100 p-4">
                           <h3 className={`font-bold text-center mb-4 ${getPlayerTextColorClassByName(player.name, localPlayers)}`}>{player.name}</h3>
-                          
+
                           <div className="stats stats-vertical shadow w-full">
                             {statFields.map(field => {
                               let value = stats[field.key];
