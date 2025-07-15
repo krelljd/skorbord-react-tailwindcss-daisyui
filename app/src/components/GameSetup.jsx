@@ -113,11 +113,11 @@ const getRivalryPlayerNames = (rivalry) => {
         game_type_id: selectedGameType,
         player_names: enteredNames,
         win_condition_type: useCustomCondition ? 
-          (customWinCondition ? 'custom' : gameType.win_condition_type) : 
-          gameType.win_condition_type,
+          (customWinCondition ? (gameType.is_win_condition ? 'win' : 'lose') : (gameType.is_win_condition ? 'win' : 'lose')) : 
+          (gameType.is_win_condition ? 'win' : 'lose'),
         win_condition_value: useCustomCondition && customWinCondition ? 
           parseInt(customWinCondition) : 
-          gameType.win_condition_value
+          (gameType.is_win_condition ? gameType.win_condition : gameType.loss_condition)
       }
 
       // Debug: log payload and endpoint
@@ -229,13 +229,13 @@ const getRivalryPlayerNames = (rivalry) => {
               <div className="form-control mt-2">
                 <label className="label">
                   <span className="label-text">
-                    {selectedGameTypeData.win_condition_type === 'win' ? 'Win at score:' : 'Lose at score:'}
+                    {selectedGameTypeData.is_win_condition ? 'Win at score:' : 'Lose at score:'}
                   </span>
                 </label>
                 <input 
                   type="number"
                   className="input input-bordered"
-                  placeholder={selectedGameTypeData.win_condition_value.toString()}
+                  placeholder={(selectedGameTypeData.is_win_condition ? selectedGameTypeData.win_condition : selectedGameTypeData.loss_condition)?.toString()}
                   value={customWinCondition}
                   onChange={e => setCustomWinCondition(e.target.value)}
                 />

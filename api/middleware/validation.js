@@ -108,6 +108,15 @@ export const validateCreateGame = [
     }
     return true;
   }),
+  body('win_condition_type')
+    .optional()
+    .isString()
+    .isIn(['win', 'lose'])
+    .withMessage('Win condition type must be either "win" or "lose"'),
+  body('win_condition_value')
+    .optional()
+    .isInt({ min: 1, max: 999 })
+    .withMessage('Win condition value must be between 1 and 999'),
   handleValidationErrors
 ];
 
