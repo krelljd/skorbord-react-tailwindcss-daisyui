@@ -26,6 +26,16 @@ fi
 
 echo "Local database size: $localSize bytes"
 
+# Stop the service before copying the database
+echo "Stopping Skorbord Cards App service on remote server..."
+ssh "${remoteUser}@${remoteHost}" "sudo systemctl stop skorbord-cards-app"
+if [[ $? -eq 0 ]]; then
+    echo "✅ Service stopped successfully"
+else
+    echo "⚠️  Warning: Failed to stop service. You may need to stop it manually."
+    echo "   Run: ssh ${remoteUser}@${remoteHost} 'sudo systemctl stop skorbord-cards-app'"
+fi
+
 # Create backup on remote server first
 echo "Creating backup on remote server..."
 backupTimestamp=$(date +%Y%m%d_%H%M%S)
@@ -40,9 +50,23 @@ else
     exit 1
 fi
 
-# Copy the local database to the server
+# Copy the local database and WAL files to the server
 echo "Copying database file..."
 scp "$localPath" "${remoteUser}@${remoteHost}:${remotePath}"
+
+# Also copy WAL files if they exist locally
+walFile="${localPath}-wal"
+shmFile="${localPath}-shm"
+
+if [[ -f "$walFile" ]]; then
+    echo "Copying WAL file..."
+    scp "$walFile" "${remoteUser}@${remoteHost}:${remotePath}-wal"
+fi
+
+if [[ -f "$shmFile" ]]; then
+    echo "Copying SHM file..."
+    scp "$shmFile" "${remoteUser}@${remoteHost}:${remotePath}-shm"
+fi
 
 if [[ $? -eq 0 ]]; then
     echo "Successfully copied local database to ${remoteUser}@${remoteHost}:${remotePath}"
@@ -54,25 +78,45 @@ if [[ $? -eq 0 ]]; then
     if [[ $localSize -eq $remoteSize ]]; then
         echo "✅ File size verification passed (Local: $localSize bytes, Remote: $remoteSize bytes)"
         
+        # Set proper file permissions
+        echo "Setting file permissions..."
+        ssh "${remoteUser}@${remoteHost}" "chown pi:pi '$remotePath' '$remotePath'-* 2>/dev/null || true"
+        ssh "${remoteUser}@${remoteHost}" "chmod 644 '$remotePath' '$remotePath'-* 2>/dev/null || true"
+        
         # Restart the service to ensure it picks up the new database
         echo "Restarting Skorbord Cards App service..."
         ssh "${remoteUser}@${remoteHost}" "sudo systemctl restart skorbord-cards-app"
         
         if [[ $? -eq 0 ]]; then
-            echo "✅ Service restarted successfully"
-            echo "🎉 Database copy operation completed successfully!"
-            echo "📁 Remote backup available at: $remoteBackupPath"
+            echo "✅ Service restart command executed successfully"
+            
+            # Wait a moment and check service status
+            echo "Checking service status..."
+            sleep 2
+            serviceStatus=$(ssh "${remoteUser}@${remoteHost}" "sudo systemctl is-active skorbord-cards-app")
+            
+            if [[ "$serviceStatus" == "active" ]]; then
+                echo "✅ Service is running and active"
+                echo "🎉 Database copy operation completed successfully!"
+                echo "📁 Remote backup available at: $remoteBackupPath"
+            else
+                echo "⚠️  Warning: Service may not be running properly (Status: $serviceStatus)"
+                echo "   Check service logs: ssh ${remoteUser}@${remoteHost} 'sudo journalctl -u skorbord-cards-app -f'"
+            fi
         else
             echo "⚠️  Warning: Failed to restart service. You may need to restart it manually."
             echo "   Run: ssh ${remoteUser}@${remoteHost} 'sudo systemctl restart skorbord-cards-app'"
         fi
     else
         echo "❌ Error: File size mismatch after copy (Local: $localSize, Remote: $remoteSize)" >&2
-        echo "Restoring from backup..."
+        echo "Restoring from backup and restarting service..."
         ssh "${remoteUser}@${remoteHost}" "cp '$remoteBackupPath' '$remotePath'"
+        ssh "${remoteUser}@${remoteHost}" "sudo systemctl start skorbord-cards-app"
         exit 1
     fi
 else
     echo "❌ Error: Failed to copy database file. Check your network and SSH keys." >&2
+    echo "Restarting service to restore normal operation..."
+    ssh "${remoteUser}@${remoteHost}" "sudo systemctl start skorbord-cards-app"
     exit 1
 fi
