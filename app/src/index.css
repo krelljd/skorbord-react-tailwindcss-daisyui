@@ -1,6 +1,18 @@
 @import "tailwindcss";
 @plugin "daisyui" {
   themes: light --default, dark --prefersdark;
+  
+  safelist: [
+    "text-primary",
+    "text-secondary",
+    "text-accent",
+    "text-info",
+    "text-success",
+    "text-warning",
+    "text-error",
+    "badge-soft",
+    "badge-outline"
+  ];
 }
 
 /* Custom CSS for mobile optimization and touch-friendly UI */

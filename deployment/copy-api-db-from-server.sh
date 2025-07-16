@@ -1,13 +1,13 @@
 #!/usr/bin/env zsh
-# Copies cards-sqlite.db from Raspberry Pi to local api/cards-sqlite.db
-# Usage: ./copy-api-db.sh
+# Copies cards-sqlite.db from Raspberry Pi to local api/db/cards-sqlite.db
+# Usage: ./copy-api-db-from-server.sh
 
 set -e  # Exit on any error
 
 remoteUser="pi"
 remoteHost="raspberrypi.local"
-remotePath="/home/pi/skorbord-cards/api/cards-sqlite.db"
-localPath="api/cards-sqlite.db"
+remotePath="/home/pi/skorbord-cards/api/db/cards-sqlite.db"
+localPath="api/db/cards-sqlite.db"
 
 echo "Copying ${remoteUser}@${remoteHost}:${remotePath} to ${localPath} ..."
 

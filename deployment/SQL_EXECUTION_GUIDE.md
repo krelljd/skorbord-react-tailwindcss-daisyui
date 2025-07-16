@@ -221,6 +221,59 @@ cd ~/skorbord-cards/api
 sqlite3 ./db/cards-sqlite.db "SELECT * FROM sqids ORDER BY created_at DESC LIMIT 10;"
 ```
 
+## Database Copy Operations
+
+For managing database files between your development machine and the Raspberry Pi, use the provided copy scripts.
+
+### Copy Database from Server to Local
+
+Download the production database for local development or backup:
+
+#### macOS/Linux (Copy from Server)
+
+```bash
+./deployment/copy-api-db-from-server.sh
+```
+
+#### Windows PowerShell (Copy from Server)
+
+```powershell
+.\deployment\copy-api-db-from-server.ps1
+```
+
+### Copy Database from Local to Server
+
+Upload your local database to replace the production database:
+
+#### macOS/Linux (Copy to Server)
+
+```bash
+./deployment/copy-api-db-to-server.sh
+```
+
+#### Windows PowerShell (Copy to Server)
+
+```powershell
+.\deployment\copy-api-db-to-server.ps1
+```
+
+### Safety Features for Database Copy
+
+- **Automatic backup creation** before overwriting production database
+- **File size verification** to ensure successful transfer
+- **Empty file protection** prevents copying empty databases
+- **Service restart** after successful copy to apply changes
+- **Automatic restoration** from backup if copy fails
+
+### When to Use Database Copy Scripts
+
+- **Development:** Copy production data locally for testing
+- **Deployment:** Push local changes to production
+- **Backup:** Create local copies of production data
+- **Migration:** Move databases between environments
+
+**⚠️ Warning:** Copying to server will replace the production database. Always ensure you have backups before proceeding.
+
 ## Security Notes
 
 - SQL files are temporarily copied to the Pi and deleted after execution
