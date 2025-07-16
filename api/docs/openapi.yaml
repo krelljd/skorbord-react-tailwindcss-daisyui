@@ -1,161 +1,3 @@
-  /api/{sqid}/rivalries/{rivalryId}:
-    get:
-      summary: Get rivalry details
-      description: Retrieve detailed rivalry statistics including per-player stats for each game type, player names, and recent games. Aggregate rivalry stats have been removed - only per-player stats are tracked.
-      operationId: getRivalryDetails
-      tags:
-        - Statistics
-      parameters:
-        - name: sqid
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: rivalryId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Rivalry details
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/RivalryDetails'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    RivalryDetails:
-      type: object
-      properties:
-        id:
-          type: string
-        sqid_id:
-          type: string
-        game_type_id:
-          type: string
-        player_names:
-          type: array
-          items:
-            type: string
-        players:
-          type: array
-          items:
-            $ref: '#/components/schemas/Player'
-        player_stats:
-          type: object
-          description: |
-            Per-player rivalry stats, keyed by player_id. Each value is an object keyed by game_type_id, with stat fields for that player and game type.
-          additionalProperties:
-            type: object
-            additionalProperties:
-              $ref: '#/components/schemas/RivalryPlayerStats'
-        game_type_stats:
-          type: array
-          description: List of game types played by this rivalry (no aggregate stats, just identifiers)
-          items:
-            $ref: '#/components/schemas/GameTypeStats'
-        recent_games:
-          type: array
-          items:
-            $ref: '#/components/schemas/RecentGameSummary'
-      required:
-        - id
-        - sqid_id
-        - player_names
-        - recent_games
-        - game_type_stats
-        - player_stats
-    RivalryPlayerStats:
-      type: object
-      properties:
-        total_games:
-          type: integer
-        wins:
-          type: integer
-        losses:
-          type: integer
-        avg_margin:
-          type: number
-          nullable: true
-        min_win_margin:
-          type: number
-          nullable: true
-        max_win_margin:
-          type: number
-          nullable: true
-        min_loss_margin:
-          type: number
-          nullable: true
-        max_loss_margin:
-          type: number
-          nullable: true
-        last_10_results:
-          type: string
-          description: Win/Loss string for last 10 games (e.g., "WWLLW...")
-        updated_at:
-          type: string
-          format: date-time
-          nullable: true
-      required:
-        - total_games
-        - wins
-        - losses
-
-    GameTypeStats:
-      type: object
-      description: Game type information only (no aggregate stats)
-      properties:
-        game_type_id:
-          type: string
-        game_type_name:
-          type: string
-      required:
-        - game_type_id
-        - game_type_name
-
-    RecentGameSummary:
-      type: object
-      properties:
-        id:
-          type: string
-        game_type_name:
-          type: string
-        is_winner:
-          type: boolean
-        completed_at:
-          type: string
-          format: date-time
-        winner_id:
-          type: string
-          nullable: true
-        winner_name:
-          type: string
-          nullable: true
-        score_difference:
-          type: number
-          nullable: true
-        player_scores:
-          type: array
-          items:
-            type: object
-            properties:
-              player_id:
-                type: string
-              player_name:
-                type: string
-              score:
-                type: number
-      required:
-        - id
-        - game_type_name
-        - is_winner
-        - completed_at
 openapi: 3.0.3
 info:
   title: Skorbord Card Scoring API
@@ -179,7 +21,6 @@ info:
     API endpoints are rate-limited to prevent abuse:
     - 100 requests per 15 minutes per IP address
     - Stricter limits may apply to certain endpoints
-    
   version: 1.0.0
   contact:
     name: Skorbord Support
@@ -193,6 +34,22 @@ servers:
     description: Production server
   - url: http://localhost:2424/api
     description: Development server
+
+tags:
+  - name: System
+    description: System health and status endpoints
+  - name: Players
+    description: Player management operations
+  - name: Game Types
+    description: Available card game types
+  - name: Games
+    description: Game session management and scoring
+  - name: Statistics
+    description: Game statistics and analytics
+
+externalDocs:
+  description: Skorbord API Documentation
+  url: https://cards.skorbord.app/docs
 
 paths:
   /game_types:
@@ -609,6 +466,39 @@ paths:
                 items:
                   $ref: '#/components/schemas/Rivalry'
 
+  /api/{sqid}/rivalries/{rivalryId}:
+    get:
+      summary: Get rivalry details
+      description: Retrieve detailed rivalry statistics including per-player stats for each game type, player names, and recent games. Aggregate rivalry stats have been removed - only per-player stats are tracked.
+      operationId: getRivalryDetails
+      tags:
+        - Statistics
+      parameters:
+        - name: sqid
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: rivalryId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Rivalry details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/RivalryDetails'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
 components:
   parameters:
     PlayerId:
@@ -661,6 +551,134 @@ components:
             $ref: '#/components/schemas/Error'
 
   schemas:
+    RivalryDetails:
+      type: object
+      properties:
+        id:
+          type: string
+        sqid_id:
+          type: string
+        game_type_id:
+          type: string
+        player_names:
+          type: array
+          items:
+            type: string
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
+        player_stats:
+          type: object
+          description: |
+            Per-player rivalry stats, keyed by player_id. Each value is an object keyed by game_type_id, with stat fields for that player and game type.
+          additionalProperties:
+            type: object
+            additionalProperties:
+              $ref: '#/components/schemas/RivalryPlayerStats'
+        game_type_stats:
+          type: array
+          description: List of game types played by this rivalry (no aggregate stats, just identifiers)
+          items:
+            $ref: '#/components/schemas/GameTypeStats'
+        recent_games:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecentGameSummary'
+      required:
+        - id
+        - sqid_id
+        - player_names
+        - recent_games
+        - game_type_stats
+        - player_stats
+
+    RivalryPlayerStats:
+      type: object
+      properties:
+        total_games:
+          type: integer
+        wins:
+          type: integer
+        losses:
+          type: integer
+        avg_margin:
+          type: number
+          nullable: true
+        min_win_margin:
+          type: number
+          nullable: true
+        max_win_margin:
+          type: number
+          nullable: true
+        min_loss_margin:
+          type: number
+          nullable: true
+        max_loss_margin:
+          type: number
+          nullable: true
+        last_10_results:
+          type: string
+          description: Win/Loss string for last 10 games (e.g., "WWLLW...")
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - total_games
+        - wins
+        - losses
+
+    GameTypeStats:
+      type: object
+      description: Game type information only (no aggregate stats)
+      properties:
+        game_type_id:
+          type: string
+        game_type_name:
+          type: string
+      required:
+        - game_type_id
+        - game_type_name
+
+    RecentGameSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        game_type_name:
+          type: string
+        is_winner:
+          type: boolean
+        completed_at:
+          type: string
+          format: date-time
+        winner_id:
+          type: string
+          nullable: true
+        winner_name:
+          type: string
+          nullable: true
+        score_difference:
+          type: number
+          nullable: true
+        player_scores:
+          type: array
+          items:
+            type: object
+            properties:
+              player_id:
+                type: string
+              player_name:
+                type: string
+              score:
+                type: number
+      required:
+        - id
+        - game_type_name
+        - is_winner
+        - completed_at
+
     Player:
       type: object
       properties:
@@ -948,19 +966,3 @@ components:
           additionalProperties: true
       required:
         - error
-
-tags:
-  - name: System
-    description: System health and status endpoints
-  - name: Players
-    description: Player management operations
-  - name: Game Types
-    description: Available card game types
-  - name: Games
-    description: Game session management and scoring
-  - name: Statistics
-    description: Game statistics and analytics
-
-externalDocs:
-  description: Skorbord API Documentation
-  url: https://cards.skorbord.app/docs

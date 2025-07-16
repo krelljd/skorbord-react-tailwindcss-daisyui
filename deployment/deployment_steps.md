@@ -514,6 +514,36 @@ For development, you can run the frontend and backend separately to enable hot r
 
 ---
 
+## SQL Database Management
+
+For managing SQL scripts and database updates on the Raspberry Pi, refer to the comprehensive SQL Execution Guide:
+
+📋 **[SQL Execution Guide](./SQL_EXECUTION_GUIDE.md)**
+
+### Quick Reference
+
+Execute SQL files on the production database:
+
+```bash
+# From development machine (recommended)
+./deployment/run-sql-on-pi.sh api/db/insert-sqids.sql
+
+# On Raspberry Pi directly
+ssh pi@raspberrypi.local
+cd ~/skorbord-cards/api
+npm run sql:execute ./db/insert-sqids.sql
+```
+
+### Key Features
+
+- Automatic database backups before execution
+- Transaction-based execution with rollback on failure
+- Remote execution from development machine
+- Detailed logging and error handling
+- Service restart capability
+
+---
+
 **Note:**
 
 - In development, you need to run both the frontend and backend servers manually.
