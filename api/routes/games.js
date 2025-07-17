@@ -136,9 +136,23 @@ router.post('/', validateCreateGame, async (req, res, next) => {
           player = await db.get('SELECT id FROM players WHERE sqid_id = ? AND name = ?', [sqid, trimmed]);
         }
         if (!player) {
-          // Create new player (empty name allowed)
+          // Create new player (empty name allowed) with color assignment
           const playerId = generateUUID();
-          await db.run('INSERT INTO players (id, sqid_id, name, created_at) VALUES (?, ?, ?, ?)', [playerId, sqid, trimmed, new Date().toISOString()]);
+          
+          // Get current player count for color assignment
+          const playerCountResult = await db.get(
+            'SELECT COUNT(*) as count FROM players WHERE sqid_id = ?',
+            [sqid]
+          );
+          const playerCount = playerCountResult.count;
+          
+          // Assign color based on player position (same logic as players route)
+          const PLAYER_COLORS = [
+            'primary', 'secondary', 'accent', 'info', 'success', 'warning', 'error', 'neutral'
+          ];
+          const assignedColor = PLAYER_COLORS[playerCount % PLAYER_COLORS.length];
+          
+          await db.run('INSERT INTO players (id, sqid_id, name, created_at, color) VALUES (?, ?, ?, ?, ?)', [playerId, sqid, trimmed, new Date().toISOString(), assignedColor]);
           finalPlayerIds.push(playerId);
         } else {
           finalPlayerIds.push(player.id);

@@ -59,27 +59,22 @@ router.post('/', validateCreatePlayer, async (req, res, next) => {
     if (existingPlayer) {
       throw new ConflictError('Player name already exists in this Sqid');
     }
-    // DaisyUI color assignment logic
-    // 1. Get all colors already used for this sqid
-    const usedColorsRows = await db.query(
-      'SELECT color FROM players WHERE sqid_id = ? AND color IS NOT NULL',
+    // DaisyUI color assignment logic - deterministic based on player count in sqid
+    // 1. Get current player count for this sqid
+    const playerCountResult = await db.get(
+      'SELECT COUNT(*) as count FROM players WHERE sqid_id = ?',
       [sqid]
     );
-    const usedColors = usedColorsRows.map(row => row.color).filter(Boolean);
-    // 2. Get allowed DaisyUI colors
+    const playerCount = playerCountResult.count;
+    
+    // 2. Get allowed DaisyUI colors (same as frontend)
     const PLAYER_COLORS = [
       'primary', 'secondary', 'accent', 'info', 'success', 'warning', 'error', 'neutral'
     ];
-    // 3. Find unused colors
-    const unusedColors = PLAYER_COLORS.filter(c => !usedColors.includes(c));
-    // 4. Select a color
-    let assignedColor;
-    if (unusedColors.length > 0) {
-      assignedColor = unusedColors[Math.floor(Math.random() * unusedColors.length)];
-    } else {
-      assignedColor = PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)];
-    }
-    // 5. Create new player with color
+    
+    // 3. Assign color based on player position (deterministic)
+    const assignedColor = PLAYER_COLORS[playerCount % PLAYER_COLORS.length];
+    // 4. Create new player with color
     const playerId = generateUUID();
     const playerData = {
       id: playerId,
