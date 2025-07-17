@@ -38,12 +38,14 @@ const router = express.Router({ mergeParams: true });
 router.get('/', async (req, res, next) => {
   try {
     const { sqid } = req.params;
-    // Get all rivalries for this sqid
+    // Get all rivalries for this sqid, ordered by total games played (most to least)
     const rivalries = await db.query(`
-      SELECT id, created_at
-      FROM rivalries
-      WHERE sqid_id = ?
-      ORDER BY created_at DESC
+      SELECT r.id, r.created_at, COUNT(g.id) as total_games
+      FROM rivalries r
+      LEFT JOIN games g ON r.id = g.rivalry_id AND g.finalized = true
+      WHERE r.sqid_id = ?
+      GROUP BY r.id, r.created_at
+      ORDER BY total_games DESC, r.created_at DESC
     `, [sqid]);
 
     for (const rivalry of rivalries) {
