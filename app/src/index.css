@@ -1,0 +1,214 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark;
+  
+  safelist: [
+    "text-primary",
+    "text-secondary",
+    "text-accent",
+    "text-info",
+    "text-success",
+    "text-warning",
+    "text-error",
+    "badge-soft",
+    "badge-outline"
+  ];
+}
+
+/* Custom CSS for mobile optimization and touch-friendly UI */
+@layer base {
+  html {
+    /* Ensure dark theme and mobile-optimized viewport */
+    background-color: #111827;
+    color: #f9fafb;
+  }
+
+  body {
+    /* Prevent text selection on interactive elements */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    
+    /* Optimize for touch interactions */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Allow text selection for inputs and content areas */
+  input, textarea, [contenteditable], .selectable {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+}
+
+@layer components {
+  /* Touch-friendly button styling */
+  .btn-touch {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: none;
+    /* Ensure buttons meet minimum touch target size */
+  }
+  
+  /* Score adjustment buttons */
+  .score-btn {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: none;
+    font-size: 1.25rem;
+    font-weight: 700;
+    border-radius: 0.75rem;
+    /* Large, easy to press score adjustment buttons */
+    /* DaisyUI classes: btn btn-primary are applied in JSX */
+  }
+  
+  /* Player card styling */
+  .player-card {
+    padding: 1rem;
+    margin: 0.5rem;
+    /* Consistent card styling for players */
+    /* DaisyUI classes: card bg-base-200 shadow-xl are applied in JSX */
+  }
+  
+  /* Mobile-first container */
+  .mobile-container {
+    max-width: 32rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+    /* Mobile-optimized container width */
+  }
+
+  /* Score display styling */
+  .score-display {
+    font-size: 2.25rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 1rem;
+    /* Large, readable score display */
+  }
+
+  /* Game type selector */
+  .game-type-select {
+    width: 100%;
+    font-size: 1.125rem;
+    /* Large, touch-friendly dropdown */
+    /* DaisyUI classes: select select-bordered select-lg are applied in JSX */
+  }
+
+  /* Modal styling for mobile */
+  .modal-mobile {
+    max-width: 24rem;
+    margin-left: 1rem;
+    margin-right: 1rem;
+    /* Mobile-optimized modal size */
+    /* DaisyUI classes: modal-box are applied in JSX */
+  }
+
+  /* Loading state - DaisyUI classes applied in JSX */
+  
+  /* Error state - DaisyUI classes applied in JSX */
+  
+  /* Success state - DaisyUI classes applied in JSX */
+}
+
+@layer utilities {
+  /* Touch-optimized utilities */
+  .touch-none {
+    touch-action: none;
+  }
+  
+  .touch-pan-x {
+    touch-action: pan-x;
+  }
+  
+  .touch-pan-y {
+    touch-action: pan-y;
+  }
+  
+  /* Score tally animation */
+  .score-tally {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    animation: scoreTallyFadeInOut 3s ease-in-out forwards;
+    /* DaisyUI classes: bg-accent text-accent-content are applied in JSX */
+  }
+
+  /* Score tally fade in/out animation - smooth and performant */
+  .score-tally-animation {
+    animation: scoreTallyFadeInOut 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  /* Fade in/out animation for score tally */
+  @keyframes scoreTallyFadeInOut {
+    0% { 
+      opacity: 0; 
+      transform: translateY(-8px) scale(0.8);
+    }
+    15% { 
+      opacity: 1; 
+      transform: translateY(0) scale(1.05);
+    }
+    20% { 
+      opacity: 1; 
+      transform: translateY(0) scale(1);
+    }
+    85% { 
+      opacity: 1; 
+      transform: translateY(0) scale(1);
+    }
+    100% { 
+      opacity: 0; 
+      transform: translateY(-8px) scale(0.9);
+    }
+  }
+
+  /* Legacy fadeInOut animation (kept for compatibility) */
+  @keyframes fadeInOut {
+    0% { opacity: 0; transform: translateY(-10px); }
+    20% { opacity: 1; transform: translateY(0); }
+    80% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-10px); }
+  }
+
+  /* Connection status indicator */
+  .connection-indicator {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 50;
+    /* DaisyUI classes: badge badge-sm badge-success/badge-error are applied in JSX */
+  }
+  
+  /* Slide in animations for mobile views */
+  .slide-in-bottom {
+    animation: slideInBottom 0.3s ease-out;
+  }
+  
+  @keyframes slideInBottom {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+}

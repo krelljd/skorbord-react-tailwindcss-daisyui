@@ -11,7 +11,7 @@
 - Games require two or more players.
 - Rivalries can be defined for a given set of players.
 - Rivalries are tracked per game, aggregated by game type played.
-- Rivalries should track average margin of victory, last 10 results (e.g. WWWLLLWLWL), minimum and maximum wins/loss margins. All stats should be updated when a game is finalized.
+Rivalries should track last 10 results (e.g. WWWLLLWLWL), minimum and maximum wins/loss margins. All stats should be updated when a game is finalized.
 - Multiple concurrent rivalries can be tracked, each having different players.
 - Team rivalries can be tracked, where multiple players are assigned to a Team.
 - Team names should be player names grouped together (e.g. `Player 1 | Player 2 vs Player 3 | Player 4`)
@@ -46,9 +46,9 @@
 
 ## Technology Requirements
 
-- Use dbmate for DuckDB migrations
-- Configure DuckDB to use a file path in .env
-`DATABASE_URL=duckdb:///db/cards-duckdb.db`
+// Use migrationRunner.js for SQLite migrations
+- Configure SQLite to use a file path in .env
+`DATABASE_URL=SQLite:///db/cards-SQLite.db`
 - Migrations directory should be `api/db/migrations/`
 - Add migration scripts as .sql files in migrations directory.
 

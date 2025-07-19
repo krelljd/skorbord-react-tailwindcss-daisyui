@@ -6,13 +6,13 @@ This guide explains how to build and deploy both the backend (Node.js/Express) a
 
 ## Project Setup & Tooling Checklist
 
+ 
 ```markdown
 - [ ] Create and maintain `.env`, `.env.example`, and `.gitignore` files in both `api/` and `app/` directories.
 - [ ] Add a `README.md` and `code_map.json` to the project root for onboarding and structure mapping.
 - [ ] Set up ESLint and Prettier for both backend and frontend; add `lint` and `format` scripts to both `package.json` files.
 - [ ] Add migration and seed scripts for the backend, and ensure a migration runner is available (e.g., `npm run migrate`, `npm run seed`).
-- [ ] Add `dev`, `test`, `lint`, and `format` scripts to both `api/package.json` and `app/package.json`.
-- [ ] Set up a test runner (e.g., Jest, Vitest) and add test scripts in both `package.json` files.
+- [ ] Add `dev`, `lint`, and `format` scripts to both `api/package.json` and `app/package.json`.
 - [ ] Add OpenAPI spec and `.http` files for API documentation and manual testing.
 - [ ] Configure TailwindCSS, DaisyUI, and Vite proxy in the frontend; ensure `vite.config.js` proxies `/api` to backend.
 - [ ] Add VS Code run tasks for starting backend/frontend in dev mode, running tests, linting, formatting, and deployment scripts.
@@ -40,12 +40,14 @@ You can use the provided scripts to automate the frontend build and deploy proce
 
 - **For macOS/Linux:**
 
+  
   ```sh
   ./deploy-cards-app.sh
   ```
 
 - **For Windows/PowerShell:**
 
+  
   ```powershell
   ./deploy-cards-app.ps1
   ```
@@ -66,14 +68,16 @@ These scripts will:
 
 1. **Install dependencies:**
 
+   
    ```sh
    cd app
    npm install
    cd ..
-   ```
+   
 
 2. **Build the production frontend:**
 
+   
    ```sh
    npm run --prefix app build
    ```
@@ -86,6 +90,7 @@ These scripts will:
 
 1. **Install backend dependencies:**
 
+   
    ```sh
    cd api
    npm install
@@ -110,13 +115,26 @@ These scripts will:
        res.sendFile(path.join(__dirname, 'app/dist/index.html'));
      });
 
+   **Note:** If your backend does not already serve static files and provide an SPA fallback, add the following to your `api/index.js` after API routes:
+
+   
+   ```js
+   // Serve static files from frontend build
+   app.use(express.static(join(__dirname, 'app', 'dist')));
+
+   // SPA fallback for React Router
+   app.get('*', (req, res) => {
+     res.sendFile(join(__dirname, 'app', 'dist', 'index.html'));
+   });
+   ```
      app.listen(2525, () => {
        console.log('Server running on port 2525');
      });
-     ```
+   
 
 3. **(Optional) Test locally:**
 
+   
    ```sh
    npm run --prefix api dev
    ```
@@ -131,18 +149,21 @@ These scripts will:
 
 1. **Create target directories on the Pi:**
 
+   
    ```sh
    ssh pi@raspberrypi.local "mkdir -p ~/skorbord-cards/api ~/skorbord-cards/app"
    ```
 
 2. **Copy backend files:**
 
+   
    ```sh
    scp -r api/* pi@raspberrypi.local:~/skorbord-cards/api/
    ```
 
 3. **Copy frontend build files:**
 
+   
    ```sh
    scp -r app/dist/* pi@raspberrypi.local:~/skorbord-cards/api/app/
    ```
@@ -151,6 +172,7 @@ These scripts will:
 
 4. **Copy the SQLite database (if needed):**
 
+   
    ```sh
    scp api/scoreboards.db pi@raspberrypi.local:~/skorbord-cards/api/
    ```
@@ -159,12 +181,14 @@ These scripts will:
 
 1. **SSH into the Pi:**
 
+   
    ```sh
    ssh pi@raspberrypi.local
    ```
 
 2. **Install backend dependencies:**
 
+   
    ```sh
    cd ~/skorbord-cards/api
    npm install
@@ -176,6 +200,7 @@ These scripts will:
 
 1. **Start the backend:**
 
+   
    ```sh
    cd ~/skorbord-cards/api
    npm run dev
@@ -183,6 +208,7 @@ These scripts will:
 
    Or, for production:
 
+   
    ```sh
    node index.js
    ```
@@ -485,6 +511,36 @@ For development, you can run the frontend and backend separately to enable hot r
 
 - Access your app at `http://localhost:2424`
 - Ensure both the frontend and backend are accessible and functioning correctly.
+
+---
+
+## SQL Database Management
+
+For managing SQL scripts and database updates on the Raspberry Pi, refer to the comprehensive SQL Execution Guide:
+
+📋 **[SQL Execution Guide](./SQL_EXECUTION_GUIDE.md)**
+
+### Quick Reference
+
+Execute SQL files on the production database:
+
+```bash
+# From development machine (recommended)
+./deployment/run-sql-on-pi.sh api/db/insert-sqids.sql
+
+# On Raspberry Pi directly
+ssh pi@raspberrypi.local
+cd ~/skorbord-cards/api
+npm run sql:execute ./db/insert-sqids.sql
+```
+
+### Key Features
+
+- Automatic database backups before execution
+- Transaction-based execution with rollback on failure
+- Remote execution from development machine
+- Detailed logging and error handling
+- Service restart capability
 
 ---
 

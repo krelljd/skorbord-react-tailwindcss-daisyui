@@ -4,7 +4,7 @@ This checklist is derived from the implementation plan and is designed for step-
 
 ```markdown
 - [ ] Project Structure & Tooling
-    - [ ] Ensure `api/` contains backend (Node.js, Express, Socket.IO, DuckDB, ES6+ JavaScript)
+    - [ ] Ensure `api/` contains backend (Node.js, Express, Socket.IO, SQLite, ES6+ JavaScript)
     - [ ] Ensure `app/` contains frontend (Vite, React, TailwindCSS, DaisyUI, ES6+ JavaScript)
     - [ ] Verify all code and markdown content is standards-compliant
     - [ ] Follow naming conventions and folder structure as per documentation
@@ -14,9 +14,9 @@ This checklist is derived from the implementation plan and is designed for step-
     - [ ] Integrate Context7 for code search, documentation, and developer experience
 
 - [ ] Database & Data Model
-    - [ ] Implement DuckDB to store data across sessions
+    - [ ] Implement SQLite to store data across sessions
     - [ ] Ensure all database scripts are idempotent and can be run multiple times without issues
-    - [ ] Use DuckDB for all persistent storage
+    - [ ] Use SQLite for all persistent storage
     - [ ] Add migration scripts for schema updates and document all migrations
     - [ ] Seed with sample data for local development
     - [ ] Document schema and migrations
@@ -73,13 +73,6 @@ This checklist is derived from the implementation plan and is designed for step-
     - [ ] Ensure all score and state changes are broadcast in real time using REST and WebSocket (Socket.IO) APIs
     - [ ] Display clear UI warnings if persistence fails or real-time sync is lost
     - [ ] Use Context7 for troubleshooting and code search
-
-- [ ] Testing & QA
-    - [ ] Write unit and integration tests for backend and frontend
-    - [ ] Test on iPhone and iPad for responsiveness and accessibility
-    - [ ] Validate real-time sync with multiple clients
-    - [ ] Ensure all code is standards-compliant, maintainable, and well-documented
-    - [ ] Use Context7 for test coverage mapping and test discovery
 
 - [ ] Deployment & Documentation
     - [ ] Configure build output to `dist/` for frontend

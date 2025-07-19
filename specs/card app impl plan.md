@@ -6,7 +6,7 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ## 1. Project Structure & Tooling
 
-- Use `api/` for backend (Node.js, Express, Socket.IO, DuckDB, ES6+ JavaScript)
+- Use `api/` for backend (Node.js, Express, Socket.IO, SQLite, ES6+ JavaScript)
 - Use `app/` for frontend (Vite, React, TailwindCSS, DaisyUI, ES6+ JavaScript)
 - Ensure all code and markdown content is standards-compliant
 - Follow naming conventions and folder structure as per documentation
@@ -19,9 +19,9 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ## 2. Database & Data Model
 
-- Implement DuckDB to store data across sessions
+- Implement SQLite to store data across sessions
 - Ensure all database scripts are idempotent and can be run multiple times without causing issues
-- Use DuckDB for all persistent storage
+- Use SQLite for all persistent storage
 - Add migration scripts for schema updates and document all migrations
 - Seed with sample data for local development
 - Document schema and migrations
@@ -104,17 +104,7 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ---
 
-## 10. Testing & QA
-
-- Write unit and integration tests for backend and frontend
-- Test on iPhone and iPad for responsiveness and accessibility
-- Validate real-time sync with multiple clients
-- Ensure all code is standards-compliant, maintainable, and well-documented
-- Use Context7 for test coverage mapping and test discovery
-
----
-
-## 11. Deployment & Documentation
+## 10. Deployment & Documentation
 
 - Configure build output to `dist/` for frontend
 - Document deployment steps in `deployment_steps.md`
@@ -125,7 +115,7 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ---
 
-## 12. Local Development
+## 11. Local Development
 
 - Provide scripts for local development: `npm run dev` for frontend, `npm run dev` for backend
 - Use `.env.local` for local configuration
@@ -134,7 +124,7 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ---
 
-## 13. Production Deployment
+## 12. Production Deployment
 
 - Use `.env.production` for production configuration
 - Build frontend with `npm run build` and serve from backend
@@ -144,7 +134,7 @@ This plan is designed for an LLM or developer to follow step-by-step, ensuring a
 
 ---
 
-## 14. Final Review
+## 13. Final Review
 
 - Review for accessibility, performance, and usability
 - Finalize documentation and prepare for production deployment
