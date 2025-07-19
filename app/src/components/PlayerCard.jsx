@@ -51,10 +51,14 @@ const PlayerCard = ({
     if (disabled) return
     
     clearTimeout(longPressTimer.current)
+    
     // Only execute single increment if it wasn't a long press
     if (!isLongPress.current) {
       handleScoreChange(change)
     }
+    
+    // Reset the long press flag for next interaction
+    isLongPress.current = false
   }
 
   const handlePressCancel = () => {
