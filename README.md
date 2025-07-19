@@ -64,9 +64,9 @@ A modern, mobile-first card scoring application built with React, Express, and S
 
 4. **Access the Application**
 
-   - Frontend: <http://localhost:3000>
-   - Backend API: <http://localhost:2424>
-   - API Documentation: <http://localhost:2424/api/docs>
+   - Frontend: <http://localhost:2424>
+   - Backend API: <http://localhost:2525>
+   - API Documentation: <http://localhost:2525/api/docs>
 
 ### VS Code Integration
 
