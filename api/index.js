@@ -23,7 +23,7 @@ import favoritesRoutes from './routes/favorites.js';
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
 import { validateSquid, validateCreateSquid } from './middleware/validation.js';
-// import { socketAuthMiddleware } from './middleware/socketAuth.js';
+import { authenticateSocket } from './auth/websocket.js';
 
 // Import utilities  
 import { createResponse, isValidId } from './utils/helpers.js';
@@ -181,7 +181,7 @@ app.get('*', (req, res) => {
 });
 
 // Socket.IO middleware and handlers
-// io.use(socketAuthMiddleware);
+io.use(authenticateSocket);
 io.on('connection', (socket) => handleConnection(io, socket));
 
 // Error handling middleware (must be last)

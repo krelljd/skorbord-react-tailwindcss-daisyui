@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { io } from 'socket.io-client'
+import { useAuth } from './AuthContext.jsx'
 
 const ConnectionContext = createContext()
 
@@ -11,8 +12,8 @@ export const useConnection = () => {
   return context
 }
 
-
 export const ConnectionProvider = ({ children, sqid }) => {
+  const { accessToken, user, isAuthenticated } = useAuth()
   const [socket, setSocket] = useState(null)
   const [isConnected, setIsConnected] = useState(false)
   const [connectionError, setConnectionError] = useState(null)
@@ -35,12 +36,20 @@ export const ConnectionProvider = ({ children, sqid }) => {
       maxReconnectionAttempts: 10,
       upgrade: true,
       rememberUpgrade: false,
+      auth: {
+        token: accessToken,
+        sqid: sqid,
+        userId: user?.sub // Auth0 user ID
+      },
       ...options
     })
   }
 
   useEffect(() => {
-    if (!sqid) return
+    // Only connect if authenticated and have token
+    if (!isAuthenticated || !accessToken || !sqid) {
+      return
+    }
     
     let newSocket = null
     
@@ -104,6 +113,12 @@ export const ConnectionProvider = ({ children, sqid }) => {
         }, 1000)
       })
 
+      newSocket.on('auth_error', (err) => {
+        console.error('Authentication error:', err)
+        setConnectionError('Authentication failed. Please sign in again.')
+        setIsConnected(false)
+      })
+
       newSocket.on('reconnect', (attemptNumber) => {
         console.log('Socket reconnected after', attemptNumber, 'attempts')
         setIsReconnecting(false)
@@ -132,20 +147,24 @@ export const ConnectionProvider = ({ children, sqid }) => {
     // Start connection attempts
     tryConnection()
 
-    // Cleanup on unmount
+    // Cleanup on unmount or dependency change
     return () => {
       if (newSocket) {
         newSocket.close()
+        setSocket(null)
+        setIsConnected(false)
       }
     }
-  }, [sqid])
+  }, [accessToken, user, sqid, isAuthenticated])
 
   const value = {
     socket,
     isConnected,
     connectionError,
     isReconnecting,
-    connectionAttempts
+    connectionAttempts,
+    sqid,
+    user
   }
 
   return (
