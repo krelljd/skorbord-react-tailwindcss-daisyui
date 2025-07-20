@@ -120,9 +120,6 @@ const getRivalryPlayerNames = (rivalry) => {
           (gameType.is_win_condition ? gameType.win_condition : gameType.loss_condition)
       }
 
-      // Debug: log payload and endpoint
-      console.log('POST /api/${sqid}/games', gameData)
-
       const response = await fetch(`/api/${sqid}/games`, {
         method: 'POST',
         headers: {
@@ -130,9 +127,6 @@ const getRivalryPlayerNames = (rivalry) => {
         },
         body: JSON.stringify(gameData)
       })
-
-      // Debug: log response status
-      console.log('Response status:', response.status)
 
       let result
       try {

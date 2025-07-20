@@ -179,16 +179,12 @@ const GamePlay = ({
   const cycleDealer = async () => {
     if (gameStats.length === 0) return
     
-    console.log('🔄 Cycling dealer. Current dealer:', dealer)
-    
     // Find current dealer index in the gameStats array
     const currentDealerIndex = gameStats.findIndex(stat => stat.player_id === dealer)
     
     // Calculate next dealer index (cycle to start if at end)
     const nextDealerIndex = (currentDealerIndex + 1) % gameStats.length
     const nextDealer = gameStats[nextDealerIndex]
-    
-    console.log('🔄 Next dealer will be:', nextDealer.player_id)
     
     await updateDealer(nextDealer.player_id)
   }

@@ -118,7 +118,6 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
                   <span key={index}>
                     <span className={(() => {
                       const colorClass = getPlayerTextColorClassByName(playerName, localPlayers);
-                      console.log(`DEBUG: Player "${playerName}" -> Color class: "${colorClass}"`);
                       return colorClass;
                     })()}>
                       {playerName}
