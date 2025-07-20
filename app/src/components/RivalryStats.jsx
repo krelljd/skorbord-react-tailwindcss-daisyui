@@ -12,7 +12,7 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
   React.useEffect(() => {
     const loadPlayers = async () => {
       try {
-        const response = await fetch(`${__API_URL__}/api/${sqid}/players`)
+        const response = await fetch(`/api/${sqid}/players`)
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.data) {
@@ -56,7 +56,7 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
     setError(null);
     try {
       // Fetch rivalry details from API
-      const res = await fetch(`${__API_URL__}/api/${sqid}/rivalries/${rivalry.id}`);
+      const res = await fetch(`/api/${sqid}/rivalries/${rivalry.id}`);
       if (!res.ok) throw new Error('Failed to fetch rivalry details');
       const data = await res.json();
       if (!data.success || !data.data) throw new Error('Invalid API response');

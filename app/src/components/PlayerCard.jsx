@@ -7,11 +7,14 @@ const PlayerCard = ({
   onScoreChange, 
   disabled, 
   scoreTally,
-  isWinner 
+  isWinner,
+  isDealer,           // New prop
+  onDealerChange      // New prop
 }) => {
   if (!player) return null;
   const [isUpdating, setIsUpdating] = useState(false)
   const [glowingButton, setGlowingButton] = useState(null) // 'plus' or 'minus'
+  const [dealerChanging, setDealerChanging] = useState(false)
   const longPressTimer = useRef(null)
   const isLongPress = useRef(false)
   const glowTimeoutRef = useRef(null)
@@ -66,6 +69,21 @@ const PlayerCard = ({
     isLongPress.current = false
   }
 
+  const handleDealerClick = async (e) => {
+    e.stopPropagation() // Prevent any parent click handlers
+    
+    if (disabled || !onDealerChange) return
+    
+    setDealerChanging(true)
+    try {
+      await onDealerChange() // No longer need to pass player.id since it cycles
+    } catch (error) {
+      console.error('Failed to change dealer:', error)
+    } finally {
+      setDealerChanging(false)
+    }
+  }
+
 
   // Format tally as +# or -#, bold, colored, superscript
   const formatScoreTally = (tally) => {
@@ -76,9 +94,39 @@ const PlayerCard = ({
 
   return (
     <div className={`player-card relative ${isWinner && player.color ? `ring-4 ${getPlayerRingColorClass(player)}` : ''}`}>
-      {/* Winner Badge */}
+      {/* Dealer Card Icon - Show for all players */}
+      <div 
+        className={`absolute -top-1 -right-1 w-8 h-8 flex items-center justify-center 
+          ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-110'} 
+          transition-all duration-200 z-20
+          ${dealerChanging ? 'animate-pulse' : ''}
+          ${isDealer ? 'opacity-100' : 'opacity-30 hover:opacity-60'}
+        `}
+        onClick={handleDealerClick}
+        title={disabled ? 
+          'Dealer selection disabled (game finalized)' : 
+          'Tap to cycle to next dealer'
+        }
+      >
+        {/* Playing Card SVG from RivalryStats timeline */}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          className={`h-6 w-6 drop-shadow-lg transition-colors duration-200 ${
+            isDealer ? getPlayerTextColorClass(player) : 'text-gray-400'
+          }`}
+        >
+          <rect x="3" y="5" width="11.2" height="14.4" rx="1.6" fill="#222" stroke="#fff" strokeWidth="1.2" />
+          <rect x="7" y="1" width="11.2" height="14.4" rx="1.6" fill="#444" stroke="#fff" strokeWidth="1.2" />
+          <text x="9" y="11" fontSize="5.6" fill="#fff" fontWeight="bold" fontFamily="monospace">D</text>
+          <text x="13.5" y="6" fontSize="5.6" fill="#fff" fontWeight="bold" fontFamily="monospace">♠</text>
+        </svg>
+      </div>
+
+      {/* Winner Badge - adjust positioning since dealer icon is always present */}
       {isWinner && player.color && (
-        <div className={`absolute -top-2 -left-2 badge ${getPlayerBadgeColorClass(player)}`}>
+        <div className={`absolute -top-2 -left-3 badge ${getPlayerBadgeColorClass(player)}`}>
           🏆 Winner
         </div>
       )}

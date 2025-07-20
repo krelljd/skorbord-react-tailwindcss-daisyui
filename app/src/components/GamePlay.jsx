@@ -18,6 +18,7 @@ const GamePlay = ({
   const [winner, setWinner] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [dealer, setDealer] = useState(null)
   // Remove modal state, use winner state to control finalize button
   
   // Score tallies for mini-sessions (3 second fade)
@@ -29,8 +30,19 @@ const GamePlay = ({
   useEffect(() => {
     if (game?.id) {
       loadGameStats()
+      loadDealerInfo()
     }
   }, [game?.id])
+
+  // Initialize dealer if none exists
+  const hasInitializedDealer = useRef(false)
+  useEffect(() => {
+    if (gameStats.length > 0 && dealer === null && !game.finalized && !hasInitializedDealer.current) {
+      console.log('🎯 Initializing random dealer because no dealer is set')
+      hasInitializedDealer.current = true
+      initializeRandomDealer()
+    }
+  }, [gameStats, dealer, game.finalized])
 
   // Reevaluate winner whenever gameStats changes
   useEffect(() => {
@@ -52,18 +64,27 @@ const GamePlay = ({
           setCurrentView('rivalry-stats')
         }
       })
+      // Listen for dealer changes from other clients
+      socket.on('dealer_changed', (data) => {
+        console.log('📡 Received dealer_changed event:', data)
+        if (data.game_id === game.id) {
+          console.log('📡 Setting dealer to:', data.dealer_id)
+          setDealer(data.dealer_id)
+        }
+      })
 
       return () => {
         socket.off('score_update', handleScoreUpdate)
         socket.off('game_completed', handleGameCompleted)
         socket.off('show_rivalry_stats')
+        socket.off('dealer_changed')
       }
     }
   }, [socket, game?.id, sqid])
 
   const loadGameStats = async () => {
     try {
-      const response = await fetch(`${__API_URL__}/api/${sqid}/games/${game.id}/stats`)
+      const response = await fetch(`/api/${sqid}/games/${game.id}/stats`)
       if (response.ok) {
         const data = await response.json()
         setGameStats(data.data || [])
@@ -72,6 +93,71 @@ const GamePlay = ({
       console.error('Failed to load game stats:', err)
       setError('Failed to load game data')
     }
+  }
+
+  const loadDealerInfo = async () => {
+    try {
+      const response = await fetch(`/api/${sqid}/games/${game.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setDealer(data.data?.dealer_id || null)
+      }
+    } catch (err) {
+      console.error('Failed to load dealer info:', err)
+    }
+  }
+
+  const initializeRandomDealer = async () => {
+    if (gameStats.length === 0) return
+    
+    const randomIndex = Math.floor(Math.random() * gameStats.length)
+    const randomPlayer = gameStats[randomIndex]
+    await updateDealer(randomPlayer.player_id)
+  }
+
+  const updateDealer = async (playerId) => {
+    try {
+      const response = await fetch(`/api/${sqid}/games/${game.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dealer_id: playerId })
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        setDealer(playerId)
+        setCurrentGame(result.data) // Update current game with new dealer
+        
+        // Emit socket event for real-time updates to other clients
+        if (socket) {
+          socket.emit('dealer_changed', { 
+            game_id: game.id, 
+            dealer_id: playerId, 
+            sqid 
+          })
+        }
+      }
+    } catch (err) {
+      console.error('Failed to update dealer:', err)
+      setError('Failed to update dealer')
+    }
+  }
+
+  const cycleDealer = async () => {
+    if (gameStats.length === 0) return
+    
+    console.log('🔄 Cycling dealer. Current dealer:', dealer)
+    
+    // Find current dealer index in the gameStats array
+    const currentDealerIndex = gameStats.findIndex(stat => stat.player_id === dealer)
+    
+    // Calculate next dealer index (cycle to start if at end)
+    const nextDealerIndex = (currentDealerIndex + 1) % gameStats.length
+    const nextDealer = gameStats[nextDealerIndex]
+    
+    console.log('🔄 Next dealer will be:', nextDealer.player_id)
+    
+    await updateDealer(nextDealer.player_id)
   }
 
   const handleScoreUpdate = (data) => {
@@ -197,7 +283,7 @@ const GamePlay = ({
     }
 
     try {
-      const response = await fetch(`${__API_URL__}/api/${sqid}/games/${game.id}/stats`, {
+      const response = await fetch(`/api/${sqid}/games/${game.id}/stats`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -253,7 +339,7 @@ const GamePlay = ({
       // Find the winner's player_id if available
       const winnerId = winner?.player_id || null;
       const endedAt = new Date().toISOString();
-      const response = await fetch(`${__API_URL__}/api/${sqid}/games/${game.id}`, {
+      const response = await fetch(`/api/${sqid}/games/${game.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -342,6 +428,8 @@ const GamePlay = ({
                 disabled={loading || game.finalized}
                 scoreTally={scoreTallies[player.id]}
                 isWinner={winner?.player_id === player.id}
+                isDealer={dealer === player.id}
+                onDealerChange={game.finalized ? null : cycleDealer}
               />
             );
           })}

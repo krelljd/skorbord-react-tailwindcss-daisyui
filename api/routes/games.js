@@ -298,7 +298,7 @@ router.get('/:gameId', validateGameAccess, async (req, res, next) => {
 router.put('/:gameId', validateGameAccess, validateUpdateGame, async (req, res, next) => {
   try {
     const { gameInfo } = req;
-    const { ended_at, finalized, winner_id } = req.body;
+    const { ended_at, finalized, winner_id, dealer_id } = req.body;
     
     if (gameInfo.finalized && finalized === false) {
       throw new ConflictError('Cannot un-finalize a game');
@@ -332,6 +332,21 @@ router.put('/:gameId', validateGameAccess, validateUpdateGame, async (req, res, 
       params.push(winner_id);
     }
     
+    if (dealer_id !== undefined) {
+      // Validate dealer is in the game
+      const playerInGame = await db.get(
+        'SELECT id FROM stats WHERE game_id = ? AND player_id = ?',
+        [gameInfo.id, dealer_id]
+      );
+      
+      if (!playerInGame) {
+        throw new ValidationError('Dealer must be a player in this game');
+      }
+      
+      updates.dealer_id = '?';
+      params.push(dealer_id);
+    }
+    
     if (Object.keys(updates).length === 0) {
       return res.json(createResponse(true, gameInfo));
     }
@@ -350,10 +365,26 @@ router.put('/:gameId', validateGameAccess, validateUpdateGame, async (req, res, 
       await updateRivalryStats(gameInfo.sqid_id, gameInfo.game_type_id, gameInfo.id);
     }
     
-    const updatedGame = await db.get(
-      'SELECT * FROM games WHERE id = ?',
-      [gameInfo.id]
-    );
+    const updatedGame = await db.get(`
+      SELECT 
+        g.*, 
+        gt.name as game_type_name,
+        gt.description as game_type_description,
+        gt.is_win_condition,
+        gt.win_condition,
+        gt.loss_condition,
+        p.name as winner_name
+      FROM games g
+      LEFT JOIN game_types gt ON g.game_type_id = gt.id
+      LEFT JOIN players p ON g.winner_id = p.id
+      WHERE g.id = ?
+    `, [gameInfo.id]);
+
+    // Use custom win condition if available, otherwise fallback to game type
+    if (!updatedGame.win_condition_type || !updatedGame.win_condition_value) {
+      updatedGame.win_condition_type = updatedGame.is_win_condition ? 'win' : 'lose';
+      updatedGame.win_condition_value = updatedGame.is_win_condition ? updatedGame.win_condition : updatedGame.loss_condition;
+    }
     
     // Broadcast game updated event
     req.io?.to(`/sqid/${gameInfo.sqid_id}`).emit('game_updated', {

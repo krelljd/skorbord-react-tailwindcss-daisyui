@@ -159,6 +159,14 @@ export const validateUpdateGame = [
       }
       return true;
     }),
+  body('dealer_id')
+    .optional()
+    .custom((value) => {
+      if (value && !isValidId(value)) {
+        throw new Error('Invalid dealer ID format');
+      }
+      return true;
+    }),
   handleValidationErrors
 ];
 

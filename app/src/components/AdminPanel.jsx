@@ -33,7 +33,7 @@ const AdminPanel = ({
     clearMessages()
 
     try {
-      const response = await fetch(`${__API_URL__}/api/game_types`, {
+      const response = await fetch(`/api/game_types`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -52,7 +52,7 @@ const AdminPanel = ({
 
       const result = await response.json()
       // Automatically favorite the new game type for this sqid
-      const favoriteRes = await fetch(`${__API_URL__}/api/${sqid}/game_types/${result.data.id}/favorite`, {
+      const favoriteRes = await fetch(`/api/${sqid}/game_types/${result.data.id}/favorite`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -63,7 +63,7 @@ const AdminPanel = ({
         throw new Error(errorData.message || 'Failed to favorite new game type')
       }
       // Re-fetch game types to get correct is_favorited
-      const gameTypesRes = await fetch(`${__API_URL__}/api/game_types?sqid=${encodeURIComponent(sqid)}`)
+      const gameTypesRes = await fetch(`/api/game_types?sqid=${encodeURIComponent(sqid)}`)
       if (gameTypesRes.ok) {
         const gameTypesData = await gameTypesRes.json()
         setGameTypes(gameTypesData.data || [])
@@ -85,7 +85,7 @@ const AdminPanel = ({
 
     try {
       const method = currentStatus ? 'DELETE' : 'POST'
-      const response = await fetch(`${__API_URL__}/api/${sqid}/game_types/${gameTypeId}/favorite`, {
+      const response = await fetch(`/api/${sqid}/game_types/${gameTypeId}/favorite`, {
         method,
         headers: {
           'Content-Type': 'application/json'
@@ -98,7 +98,7 @@ const AdminPanel = ({
       }
 
       // After toggling, re-fetch game types to get correct is_favorited for this sqid
-      const gameTypesRes = await fetch(`${__API_URL__}/api/game_types?sqid=${encodeURIComponent(sqid)}`)
+      const gameTypesRes = await fetch(`/api/game_types?sqid=${encodeURIComponent(sqid)}`)
       if (gameTypesRes.ok) {
         const gameTypesData = await gameTypesRes.json()
         setGameTypes(gameTypesData.data || [])
@@ -122,7 +122,7 @@ const AdminPanel = ({
     clearMessages()
 
     try {
-      const response = await fetch(`${__API_URL__}/api/game_types/${gameTypeId}`, {
+      const response = await fetch(`/api/game_types/${gameTypeId}`, {
         method: 'DELETE'
       })
 
