@@ -17,6 +17,7 @@ const PlayerCard = ({
   const [dealerChanging, setDealerChanging] = useState(false)
   const longPressTimer = useRef(null)
   const isLongPress = useRef(false)
+  const longPressExecuted = useRef(false) // Track if long press action was executed
   const glowTimeoutRef = useRef(null)
 
   const handleScoreChange = async (change) => {
@@ -44,8 +45,10 @@ const PlayerCard = ({
     if (disabled) return
     
     isLongPress.current = false
+    longPressExecuted.current = false
     longPressTimer.current = setTimeout(() => {
       isLongPress.current = true
+      longPressExecuted.current = true
       handleScoreChange(change * 10)
     }, 500) // 500ms for long press
   }
@@ -55,18 +58,20 @@ const PlayerCard = ({
     
     clearTimeout(longPressTimer.current)
     
-    // Only execute single increment if it wasn't a long press
-    if (!isLongPress.current) {
+    // Only execute single increment if long press wasn't executed
+    if (!longPressExecuted.current) {
       handleScoreChange(change)
     }
     
-    // Reset the long press flag for next interaction
+    // Reset flags for next interaction
     isLongPress.current = false
+    longPressExecuted.current = false
   }
 
   const handlePressCancel = () => {
     clearTimeout(longPressTimer.current)
     isLongPress.current = false
+    longPressExecuted.current = false
   }
 
   const handleDealerClick = async (e) => {

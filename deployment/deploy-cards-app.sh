@@ -6,12 +6,12 @@ npm --prefix app run build
 
 # Stop the service before copying files
 echo "Stopping Skorbord Cards App service on remote server..."
-ssh "${remoteUser}@${remoteHost}" "sudo systemctl stop skorbord-cards-app"
+ssh pi@raspberrypi.local "sudo systemctl stop skorbord-cards-app"
 if [[ $? -eq 0 ]]; then
     echo "✅ Service stopped successfully"
 else
     echo "⚠️  Warning: Failed to stop service. You may need to stop it manually."
-    echo "   Run: ssh ${remoteUser}@${remoteHost} 'sudo systemctl stop skorbord-cards-app'"
+    echo "   Run: ssh pi@raspberrypi.local 'sudo systemctl stop skorbord-cards-app'"
 fi
 
 # 2. Copy built files to Raspberry Pi backend directory (so Express can serve them)
