@@ -6,8 +6,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # SQLite database
-server/scoreboards.db
-server/scoreboards.empty.db
+*.db
+*.db-*
 
 # Vite/React build output
 dist/
