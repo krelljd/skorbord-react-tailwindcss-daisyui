@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import React, { useState, useRef } from 'react'
 import { getPlayerTextColorClass, getPlayerBadgeColorClass, getPlayerRingColorClass } from '../utils/playerColors'
 
 const PlayerCard = ({ 
@@ -15,10 +15,20 @@ const PlayerCard = ({
   const [isUpdating, setIsUpdating] = useState(false)
   const [glowingButton, setGlowingButton] = useState(null) // 'plus' or 'minus'
   const [dealerChanging, setDealerChanging] = useState(false)
+  const [localIsDealer, setLocalIsDealer] = useState(isDealer) // Local state to prevent flashing
   const longPressTimer = useRef(null)
   const isLongPress = useRef(false)
   const longPressExecuted = useRef(false) // Track if long press action was executed
+  const touchStartTime = useRef(null) // Track when touch started
+  const preventClick = useRef(false) // Prevent click after long press
   const glowTimeoutRef = useRef(null)
+
+  // Update local dealer state when prop changes, but with transition handling
+  React.useEffect(() => {
+    if (!dealerChanging) {
+      setLocalIsDealer(isDealer)
+    }
+  }, [isDealer, dealerChanging])
 
   const handleScoreChange = async (change) => {
     if (disabled) return
@@ -46,32 +56,69 @@ const PlayerCard = ({
     
     isLongPress.current = false
     longPressExecuted.current = false
+    preventClick.current = false
+    touchStartTime.current = Date.now()
+    
     longPressTimer.current = setTimeout(() => {
       isLongPress.current = true
       longPressExecuted.current = true
+      preventClick.current = true // Prevent subsequent click
       handleScoreChange(change * 10)
+      
+      // Safari-specific: Set a longer prevention period
+      setTimeout(() => {
+        preventClick.current = false
+      }, 300)
     }, 500) // 500ms for long press
   }
 
   const handlePressEnd = (change) => {
     if (disabled) return
     
+    const touchDuration = Date.now() - (touchStartTime.current || 0)
     clearTimeout(longPressTimer.current)
     
-    // Only execute single increment if long press wasn't executed
-    if (!longPressExecuted.current) {
-      handleScoreChange(change)
+    // More aggressive prevention for Safari:
+    // Only execute single increment if all conditions are met
+    if (!longPressExecuted.current && 
+        !preventClick.current && 
+        touchDuration < 500 && 
+        touchDuration > 50) { // Minimum duration to prevent accidental triggers
+      
+      // Small delay to ensure long press timer hasn't just fired
+      setTimeout(() => {
+        if (!longPressExecuted.current && !preventClick.current) {
+          handleScoreChange(change)
+        }
+      }, 10)
     }
     
-    // Reset flags for next interaction
-    isLongPress.current = false
-    longPressExecuted.current = false
+    // Reset flags after a delay to prevent Safari's delayed events
+    setTimeout(() => {
+      isLongPress.current = false
+      longPressExecuted.current = false
+      touchStartTime.current = null
+    }, 200) // Longer delay for Safari
   }
 
   const handlePressCancel = () => {
     clearTimeout(longPressTimer.current)
     isLongPress.current = false
     longPressExecuted.current = false
+    preventClick.current = false
+    touchStartTime.current = null
+  }
+
+  // Handle click events separately to prevent Safari issues
+  const handleClick = (e, change) => {
+    if (disabled) return
+    
+    // Prevent click if we just did a long press
+    if (preventClick.current) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
   }
 
   const handleDealerClick = async (e) => {
@@ -85,7 +132,10 @@ const PlayerCard = ({
     } catch (error) {
       console.error('Failed to change dealer:', error)
     } finally {
-      setDealerChanging(false)
+      // Add small delay to prevent flashing when state updates
+      setTimeout(() => {
+        setDealerChanging(false)
+      }, 100)
     }
   }
 
@@ -105,7 +155,7 @@ const PlayerCard = ({
           ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-110'} 
           transition-all duration-200 z-20
           ${dealerChanging ? 'animate-pulse' : ''}
-          ${isDealer ? 'opacity-100' : 'opacity-30 hover:opacity-60'}
+          ${localIsDealer && !dealerChanging ? 'opacity-100' : 'opacity-30 hover:opacity-60'}
         `}
         onClick={handleDealerClick}
         title={disabled ? 
@@ -119,7 +169,7 @@ const PlayerCard = ({
           viewBox="0 0 24 24"
           fill="currentColor"
           className={`h-6 w-6 drop-shadow-lg transition-colors duration-200 ${
-            isDealer ? getPlayerTextColorClass(player) : 'text-gray-400'
+            localIsDealer && !dealerChanging ? getPlayerTextColorClass(player) : 'text-gray-400'
           }`}
         >
           <rect x="3" y="5" width="11.2" height="14.4" rx="1.6" fill="#222" stroke="#fff" strokeWidth="1.2" />
@@ -180,6 +230,7 @@ const PlayerCard = ({
           onMouseDown={() => handlePressStart(-1)}
           onMouseUp={() => handlePressEnd(-1)}
           onMouseLeave={handlePressCancel}
+          onClick={(e) => handleClick(e, -1)}
           disabled={disabled}
           title="Tap: -1, Long press: -10"
         >
@@ -197,6 +248,7 @@ const PlayerCard = ({
           onMouseDown={() => handlePressStart(1)}
           onMouseUp={() => handlePressEnd(1)}
           onMouseLeave={handlePressCancel}
+          onClick={(e) => handleClick(e, 1)}
           disabled={disabled}
           title="Tap: +1, Long press: +10"
         >

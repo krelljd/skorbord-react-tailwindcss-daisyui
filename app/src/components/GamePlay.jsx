@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useConnection } from '../contexts/ConnectionContext.jsx'
 import { getPlayerBadgeColorClassById } from '../utils/playerColors'
 import PlayerCard from './PlayerCard.jsx'
@@ -19,12 +19,35 @@ const GamePlay = ({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [dealer, setDealer] = useState(null)
+  
+  // Local game metadata state to prevent flashing during updates
+  const [gameMetadata, setGameMetadata] = useState({
+    game_type_name: game?.game_type_name,
+    win_condition_type: game?.win_condition_type,
+    win_condition_value: game?.win_condition_value
+  })
+  
   // Remove modal state, use winner state to control finalize button
   
   // Score tallies for mini-sessions (3 second fade)
   const [scoreTallies, setScoreTallies] = useState({}) // playerId -> { total, timeoutId }
   const tallyTimeouts = useRef({})
   const pendingUpdates = useRef(new Set()) // Track pending score updates to avoid double-counting
+
+  // Update local metadata when game prop changes
+  React.useEffect(() => {
+    if (game && (
+      game.game_type_name !== gameMetadata.game_type_name ||
+      game.win_condition_type !== gameMetadata.win_condition_type ||
+      game.win_condition_value !== gameMetadata.win_condition_value
+    )) {
+      setGameMetadata({
+        game_type_name: game.game_type_name,
+        win_condition_type: game.win_condition_type,
+        win_condition_value: game.win_condition_value
+      })
+    }
+  }, [game?.game_type_name, game?.win_condition_type, game?.win_condition_value, gameMetadata])
 
   // Load game stats on mount
   useEffect(() => {
@@ -125,14 +148,24 @@ const GamePlay = ({
       
       if (response.ok) {
         const result = await response.json()
-        setDealer(playerId)
-        setCurrentGame(result.data) // Update current game with new dealer
+        // Only update state after successful API response to prevent flashing
+        setDealer(result.data.dealer_id) // Use server response instead of optimistic update
+        
+        // Update current game with new dealer, but preserve existing game data to prevent flashing
+        setCurrentGame(prevGame => ({
+          ...prevGame,
+          ...result.data,
+          // Ensure critical display fields are preserved if missing from response
+          game_type_name: result.data.game_type_name || prevGame.game_type_name,
+          win_condition_type: result.data.win_condition_type || prevGame.win_condition_type,
+          win_condition_value: result.data.win_condition_value !== undefined ? result.data.win_condition_value : prevGame.win_condition_value
+        }))
         
         // Emit socket event for real-time updates to other clients
         if (socket) {
           socket.emit('dealer_changed', { 
             game_id: game.id, 
-            dealer_id: playerId, 
+            dealer_id: result.data.dealer_id, // Use server response
             sqid 
           })
         }
@@ -209,7 +242,15 @@ const GamePlay = ({
 
   const handleGameCompleted = (data) => {
     if (data.game_id === game.id) {
-      setCurrentGame(data.game)
+      // Update current game preserving metadata to prevent flashing
+      setCurrentGame(prevGame => ({
+        ...prevGame,
+        ...data.game,
+        // Ensure critical display fields are preserved if missing from response
+        game_type_name: data.game.game_type_name || prevGame.game_type_name,
+        win_condition_type: data.game.win_condition_type || prevGame.win_condition_type,
+        win_condition_value: data.game.win_condition_value !== undefined ? data.game.win_condition_value : prevGame.win_condition_value
+      }))
       setWinner(data.winner)
       onGameComplete()
     }
@@ -353,7 +394,15 @@ const GamePlay = ({
       }
 
       const result = await response.json()
-      setCurrentGame(result.data)
+      // Update current game preserving metadata to prevent flashing
+      setCurrentGame(prevGame => ({
+        ...prevGame,
+        ...result.data,
+        // Ensure critical display fields are preserved if missing from response
+        game_type_name: result.data.game_type_name || prevGame.game_type_name,
+        win_condition_type: result.data.win_condition_type || prevGame.win_condition_type,
+        win_condition_value: result.data.win_condition_value !== undefined ? result.data.win_condition_value : prevGame.win_condition_value
+      }))
 
       // Emit socket event to notify all clients to show rivalry stats
       if (socket) {
@@ -388,19 +437,21 @@ const GamePlay = ({
 
   return (
     <div className="space-y-3 pb-8">
-      {/* Game Header */}
-      <div className="text-center">
-        <h2 className="text-2xl font-bold">{game.game_type_name || <span className="text-error">[No game_type_name]</span>}</h2>
-        <p className="text-sm opacity-75">
-          {(game.win_condition_type === 'win' ? 'First to' : game.win_condition_type === 'lose' ? 'Lose at' : '[No win_condition_type]')}
-          {typeof game.win_condition_value !== 'undefined' ? ` ${game.win_condition_value}` : ' [No win_condition_value]'}
-        </p>
-        {winner && (
-          <div className={`badge ${getPlayerBadgeColorClassById(winner.player_id)} badge-lg mt-2`}>
-            🏆 {winner.player_name} Wins!
-          </div>
-        )} 
-      </div>
+      {/* Game Header - Memoized to prevent flashing */}
+      {React.useMemo(() => (
+        <div className="text-center">
+          <h2 className="text-2xl font-bold">{gameMetadata.game_type_name || <span className="text-error">[No game_type_name]</span>}</h2>
+          <p className="text-sm opacity-75">
+            {(gameMetadata.win_condition_type === 'win' ? 'First to' : gameMetadata.win_condition_type === 'lose' ? 'Lose at' : '[No win_condition_type]')}
+            {typeof gameMetadata.win_condition_value !== 'undefined' ? ` ${gameMetadata.win_condition_value}` : ' [No win_condition_value]'}
+          </p>
+          {winner && (
+            <div className={`badge ${getPlayerBadgeColorClassById(winner.player_id)} badge-lg mt-2`}>
+              🏆 {winner.player_name} Wins!
+            </div>
+          )} 
+        </div>
+      ), [gameMetadata.game_type_name, gameMetadata.win_condition_type, gameMetadata.win_condition_value, winner])}
 
       {error && (
         <div className="error-state">

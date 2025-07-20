@@ -104,7 +104,18 @@ const CardApp = () => {
 
   // Socket event handlers
   const handleGameUpdate = (gameData) => {
-    setCurrentGame(gameData)
+    // Update current game preserving metadata to prevent flashing
+    setCurrentGame(prevGame => {
+      if (!prevGame) return gameData
+      return {
+        ...prevGame,
+        ...gameData,
+        // Ensure critical display fields are preserved if missing from response
+        game_type_name: gameData.game_type_name || prevGame.game_type_name,
+        win_condition_type: gameData.win_condition_type || prevGame.win_condition_type,
+        win_condition_value: gameData.win_condition_value !== undefined ? gameData.win_condition_value : prevGame.win_condition_value
+      }
+    })
     if (!gameData.finalized) {
       setCurrentView('playing')
     } else if (gameData.finalized) {
