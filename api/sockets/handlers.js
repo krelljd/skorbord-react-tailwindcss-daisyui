@@ -36,6 +36,18 @@ export function handleConnection(io, socket) {
     io.to(`/sqid/${socket.sqid}`).emit('player_activity', { ...data, timestamp: new Date().toISOString() });
   });
 
+  // Broadcast dealer changes to sqid room
+  socket.on('dealer_changed', (data) => {
+    if (!socket.sqid) return;
+    socket.to(`/sqid/${socket.sqid}`).emit('dealer_changed', { ...data, timestamp: new Date().toISOString() });
+  });
+
+  // Broadcast show rivalry stats event to sqid room
+  socket.on('show_rivalry_stats', (data) => {
+    if (!socket.sqid) return;
+    socket.to(`/sqid/${socket.sqid}`).emit('show_rivalry_stats', { ...data, timestamp: new Date().toISOString() });
+  });
+
   // Clean up on disconnect
   socket.on('disconnect', (reason) => {
     if (socket.sqid) {

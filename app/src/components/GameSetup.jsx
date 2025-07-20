@@ -123,7 +123,7 @@ const getRivalryPlayerNames = (rivalry) => {
       // Debug: log payload and endpoint
       console.log('POST /api/${sqid}/games', gameData)
 
-      const response = await fetch(`${__API_URL__}/api/${sqid}/games`, {
+      const response = await fetch(`/api/${sqid}/games`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

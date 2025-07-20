@@ -39,7 +39,8 @@ CREATE TABLE games (
     winner_id TEXT REFERENCES players(id),
     finalized BOOLEAN DEFAULT false,
     win_condition_type TEXT,
-    win_condition_value INTEGER
+    win_condition_value INTEGER,
+    dealer_id INTEGER REFERENCES players(id);
 );
 
 -- Create stats table (stores individual scores)

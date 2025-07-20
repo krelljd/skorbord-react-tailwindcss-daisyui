@@ -19,7 +19,8 @@ const CardApp = () => {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const API_URL = import.meta.env.VITE_API_URL
+  // Use relative paths since we have Vite proxy configured
+  const API_URL = ''
   // Initialize data when socket connects
   useEffect(() => {
     if (socket && isConnected && sqid) {
@@ -152,7 +153,7 @@ const CardApp = () => {
 
   const loadRivalries = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/${sqid}/rivalries`)
+      const response = await fetch(`/api/${sqid}/rivalries`)
       if (response.ok) {
         const data = await response.json()
         setRivalries(data.data || [])
