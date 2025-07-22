@@ -213,14 +213,13 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
                     
                     const gameDate = new Date(game.completed_at).toLocaleDateString();
                     
-                    // Calculate match score display (winner score - loser score)
+                    // Display all scores in "# - # - #" format, highest first
                     let matchScore = 'N/A';
                     if (game.player_scores && game.player_scores.length >= 2) {
-                      // Sort scores by highest first, winner should be first
+                      // Sort scores by highest first
                       const sortedScores = [...game.player_scores].sort((a, b) => b.score - a.score);
-                      const winnerScore = sortedScores[0].score;
-                      const loserScore = sortedScores[sortedScores.length - 1].score;
-                      matchScore = `${winnerScore}-${loserScore}`;
+                      const scoreList = sortedScores.map(ps => ps.score).join(' - ');
+                      matchScore = scoreList;
                     }
                     
                     return (
