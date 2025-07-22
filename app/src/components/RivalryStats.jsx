@@ -186,7 +186,6 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
                                 <div key={field.key} className="stat">
                                   <div className="stat-title text-xs">{field.label}</div>
                                   <div className={`stat-value text-lg ${field.className}`}>{value}</div>
-                                  {desc && <div className="stat-desc text-xs">{desc}</div>}
                                 </div>
                               );
                             })}
@@ -205,64 +204,66 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
                 <h4 className="font-semibold mb-4">Recent Games</h4>
                 <ul className="timeline timeline-vertical">
                   {rivalryDetails.recent_games.slice(0, 5).map((game, index) => {
-                    // Determine winner's name (assume game.winner_name exists, fallback to game.winner_id/player mapping if needed)
+                    // Determine winner's name and score information
                     let winnerName = game.winner_name;
                     if (!winnerName && Array.isArray(players)) {
                       const winnerPlayer = players.find(p => p.id === game.winner_id);
                       winnerName = winnerPlayer ? winnerPlayer.name : 'Unknown';
                     }
                     
-                    const isEven = index % 2 === 0;
                     const gameDate = new Date(game.completed_at).toLocaleDateString();
+                    
+                    // Calculate match score display (winner score - loser score)
+                    let matchScore = 'N/A';
+                    if (game.player_scores && game.player_scores.length >= 2) {
+                      // Sort scores by highest first, winner should be first
+                      const sortedScores = [...game.player_scores].sort((a, b) => b.score - a.score);
+                      const winnerScore = sortedScores[0].score;
+                      const loserScore = sortedScores[sortedScores.length - 1].score;
+                      matchScore = `${winnerScore}-${loserScore}`;
+                    }
                     
                     return (
                       <li key={game.id}>
                         {index > 0 && <hr className="bg-base-300" />}
                         
-                        {/* Date on alternating sides */}
-                        {isEven ? (
-                          <div className="timeline-start text-sm font-mono opacity-75">
-                            <span className={getPlayerTextColorClassByName(winnerName, localPlayers)}>{winnerName || 'Unknown'}</span>
+                        {/* Left side: Date and Winner Name */}
+                        <div className="timeline-start timeline-box bg-base-100">
+                          <div className="text-lg font-bold mb-1">
+                            <span className={getPlayerTextColorClassByName(winnerName, localPlayers)}>
+                              {winnerName || 'Unknown'}
+                            </span>
                           </div>
-                        ) : null}
+                          <div className="text-xs opacity-75">
+                            {gameDate}
+                          </div>
+                        </div>
                         
-                        {/* Card icon in the middle */}
+                        {/* icon in the middle */}
                         <div className="timeline-middle">
-                          {/* Playing cards SVG icon, 20% smaller */}
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
+                            viewBox="0 0 20 20"
                             fill="currentColor"
-                            className="h-4 w-4 text-success"
+                            className="text-success h-5 w-5"
                           >
-                            <rect x="3" y="5" width="11.2" height="14.4" rx="1.6" fill="#222" stroke="#fff" strokeWidth="1.2" />
-                            <rect x="7" y="1" width="11.2" height="14.4" rx="1.6" fill="#444" stroke="#fff" strokeWidth="1.2" />
-                            <text x="9" y="11" fontSize="5.6" fill="#fff" fontWeight="bold" fontFamily="monospace">A</text>
-                            <text x="13.5" y="6" fontSize="5.6" fill="#fff" fontWeight="bold" fontFamily="monospace">♠</text>
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                              clipRule="evenodd"
+                            />
                           </svg>
                         </div>
                         
-                        {/* Game info box on alternating sides */}
-                        {isEven ? (
+                        {/* Right side: Match Score and Game Type */}
                         <div className="timeline-end timeline-box bg-base-100">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs opacity-75">{game.game_type_name}</span>
+                          <div className="text-lg font-bold mb-1">
+                            {matchScore}
                           </div>
-                          <p className="text-xs opacity-75">{gameDate}</p>
+                          <div className="text-xs opacity-75">
+                            {game.game_type_name}
+                          </div>
                         </div>
-                        ) : (
-                          <>
-                            <div className="timeline-start timeline-box bg-base-100">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs opacity-75">{game.game_type_name}</span>
-                              </div>
-                              <p className="text-xs opacity-75">{gameDate}</p>
-                            </div>
-                            <div className="timeline-end text-sm font-mono opacity-75">
-                              <span className={getPlayerTextColorClassByName(winnerName, localPlayers)}>{winnerName || 'Unknown'}</span>
-                            </div>
-                          </>
-                        )}
                         
                         {index < rivalryDetails.recent_games.slice(0, 5).length - 1 && <hr className="bg-base-300" />}
                       </li>

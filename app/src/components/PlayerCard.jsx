@@ -39,10 +39,10 @@ const PlayerCard = ({
     if (glowTimeoutRef.current) {
       clearTimeout(glowTimeoutRef.current)
     }
-    // Remove glow after brief period
+    // Remove glow after brief period - reduced from 200ms to 150ms
     glowTimeoutRef.current = setTimeout(() => {
       setGlowingButton(null)
-    }, 200)
+    }, 150)
     try {
       await onScoreChange(player.id, change)
     } catch (error) {
@@ -65,11 +65,11 @@ const PlayerCard = ({
       preventClick.current = true // Prevent subsequent click
       handleScoreChange(change * 10)
       
-      // Safari-specific: Set a longer prevention period
+      // Safari-specific: Reduced prevention period from 300ms to 200ms
       setTimeout(() => {
         preventClick.current = false
-      }, 300)
-    }, 500) // 500ms for long press
+      }, 200)
+    }, 400) // Reduced long press threshold from 500ms to 400ms
   }
 
   const handlePressEnd = (change) => {
@@ -82,23 +82,21 @@ const PlayerCard = ({
     // Only execute single increment if all conditions are met
     if (!longPressExecuted.current && 
         !preventClick.current && 
-        touchDuration < 500 && 
-        touchDuration > 50) { // Minimum duration to prevent accidental triggers
+        touchDuration < 400 && // Updated to match new long press threshold
+        touchDuration > 30) { // Reduced minimum duration from 50ms to 30ms
       
-      // Small delay to ensure long press timer hasn't just fired
-      setTimeout(() => {
-        if (!longPressExecuted.current && !preventClick.current) {
-          handleScoreChange(change)
-        }
-      }, 10)
+      // Immediate execution for better responsiveness
+      if (!longPressExecuted.current && !preventClick.current) {
+        handleScoreChange(change)
+      }
     }
     
-    // Reset flags after a delay to prevent Safari's delayed events
+    // Reset flags after a shorter delay to improve responsiveness - reduced from 200ms to 150ms
     setTimeout(() => {
       isLongPress.current = false
       longPressExecuted.current = false
       touchStartTime.current = null
-    }, 200) // Longer delay for Safari
+    }, 150)
   }
 
   const handlePressCancel = () => {
@@ -132,10 +130,10 @@ const PlayerCard = ({
     } catch (error) {
       console.error('Failed to change dealer:', error)
     } finally {
-      // Add small delay to prevent flashing when state updates
+      // Reduced delay to prevent flashing when state updates - from 100ms to 75ms
       setTimeout(() => {
         setDealerChanging(false)
-      }, 100)
+      }, 75)
     }
   }
 
