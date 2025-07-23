@@ -507,7 +507,7 @@ const GamePlay = ({
   }
 
   return (
-    <div className="space-y-3 pb-8">
+    <div className="space-y-2 pb-6">
       {/* Game Header - Memoized to prevent flashing */}
       {React.useMemo(() => (
         <div className="text-center">
@@ -517,7 +517,7 @@ const GamePlay = ({
             {typeof gameMetadata.win_condition_value !== 'undefined' ? ` ${gameMetadata.win_condition_value}` : ' [No win_condition_value]'}
           </p>
           {winner && (
-            <div className={`badge ${getPlayerBadgeColorClassById(winner.player_id)} badge-lg mt-2`}>
+            <div className={`badge ${getPlayerBadgeColorClassById(winner.player_id)} badge-lg mt-1`}>
               🏆 {winner.player_name} Wins!
             </div>
           )} 
@@ -531,7 +531,7 @@ const GamePlay = ({
       )}
 
       {/* Player Cards Container */}
-      <div className="mb-8">
+      <div className="mb-4">
         <PlayerCardsList
           gameStats={gameStats}
           updateScore={updateScore}
@@ -612,7 +612,7 @@ const PlayerCardsList = ({
   )
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-2">
       {gameStats.map((stat, index) => {
         // Construct player object for PlayerCard
         const player = {

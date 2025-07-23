@@ -244,7 +244,7 @@ const CardApp = () => {
   return (
     <div className="mobile-container slide-in-bottom">
       {/* Header with navigation */}
-      <div className="navbar bg-base-200 rounded-lg mb-4">
+      <div className="navbar bg-base-200 rounded-lg mb-2">
         <div className="navbar-start">
           {/* Mobile dropdown menu */}
           <div className="dropdown">

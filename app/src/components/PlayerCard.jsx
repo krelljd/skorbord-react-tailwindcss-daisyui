@@ -185,7 +185,7 @@ const PlayerCard = ({
       )}
 
       {/* Player Name as heading with DaisyUI/Tailwind color */}
-      <div className="text-center mb-2">
+      <div className="text-center mb-1">
         <h3 className={`text-lg font-semibold ${getPlayerTextColorClass(player)}`}> 
           {player.name}
         </h3>
@@ -216,7 +216,7 @@ const PlayerCard = ({
       </div>
 
       {/* Score Control Buttons */}
-      <div className="grid grid-cols-2 gap-2 mt-2">
+      <div className="grid grid-cols-2 gap-2 mt-1">
         {/* Minus Button */}
         <button
           className={`btn btn-error btn-lg text-4xl font-bold aspect-square w-full max-w-20 mx-auto transition-all duration-200 ${
