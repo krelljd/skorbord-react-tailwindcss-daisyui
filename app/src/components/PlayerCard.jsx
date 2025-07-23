@@ -219,9 +219,10 @@ const PlayerCard = ({
       <div className="grid grid-cols-2 gap-2 mt-1">
         {/* Minus Button */}
         <button
-          className={`btn btn-error btn-lg text-4xl font-bold aspect-square w-full max-w-20 mx-auto transition-all duration-200 ${
+          className={`btn btn-error btn-lg text-4xl font-bold w-full max-w-20 mx-auto transition-all duration-200 ${
             glowingButton === 'minus' ? 'ring-4 ring-error ring-opacity-75 shadow-lg shadow-error/50 scale-105' : ''
           }`}
+          style={{ aspectRatio: '1', minHeight: '5rem', height: '5rem' }}
           onTouchStart={() => handlePressStart(-1)}
           onTouchEnd={() => handlePressEnd(-1)}
           onTouchCancel={handlePressCancel}
@@ -237,9 +238,10 @@ const PlayerCard = ({
 
         {/* Plus Button */}
         <button
-          className={`btn btn-success btn-lg text-4xl font-bold aspect-square w-full max-w-20 mx-auto transition-all duration-200 ${
+          className={`btn btn-success btn-lg text-4xl font-bold w-full max-w-20 mx-auto transition-all duration-200 ${
             glowingButton === 'plus' ? 'ring-4 ring-success ring-opacity-75 shadow-lg shadow-success/50 scale-105' : ''
           }`}
+          style={{ aspectRatio: '1', minHeight: '5rem', height: '5rem' }}
           onTouchStart={() => handlePressStart(1)}
           onTouchEnd={() => handlePressEnd(1)}
           onTouchCancel={handlePressCancel}
