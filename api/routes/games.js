@@ -192,6 +192,10 @@ router.post('/', validateCreateGame, async (req, res, next) => {
         finalWinConditionValue = gameType.is_win_condition ? gameType.win_condition : gameType.loss_condition;
       }
 
+      // Select a random dealer from the players
+      const randomDealerIndex = Math.floor(Math.random() * finalPlayerIds.length);
+      const initialDealerId = finalPlayerIds[randomDealerIndex];
+
       const gameData = {
         id: gameId,
         sqid_id: sqid,
@@ -200,13 +204,14 @@ router.post('/', validateCreateGame, async (req, res, next) => {
         started_at: new Date().toISOString(),
         finalized: false,
         win_condition_type: finalWinConditionType,
-        win_condition_value: finalWinConditionValue
+        win_condition_value: finalWinConditionValue,
+        dealer_id: initialDealerId
       };
 
-      // Insert game with rivalry_id
+      // Insert game with rivalry_id and initial dealer
       await db.run(
-        'INSERT INTO games (id, sqid_id, game_type_id, rivalry_id, started_at, finalized, win_condition_type, win_condition_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [gameData.id, gameData.sqid_id, gameData.game_type_id, gameData.rivalry_id, gameData.started_at, gameData.finalized, gameData.win_condition_type, gameData.win_condition_value]
+        'INSERT INTO games (id, sqid_id, game_type_id, rivalry_id, started_at, finalized, win_condition_type, win_condition_value, dealer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [gameData.id, gameData.sqid_id, gameData.game_type_id, gameData.rivalry_id, gameData.started_at, gameData.finalized, gameData.win_condition_type, gameData.win_condition_value, gameData.dealer_id]
       );
 
       // Insert initial stats for each player (score 0)

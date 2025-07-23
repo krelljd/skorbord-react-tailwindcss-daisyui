@@ -57,11 +57,17 @@ const GamePlay = ({
     }
   }, [game?.id])
 
-  // Initialize dealer if none exists
+  // Initialize dealer if none exists and game is not finalized
   const hasInitializedDealer = useRef(false)
   useEffect(() => {
+    // Only initialize dealer if:
+    // 1. We have game stats loaded
+    // 2. No dealer is currently set
+    // 3. Game is not finalized
+    // 4. We haven't already tried to initialize
     if (gameStats.length > 0 && dealer === null && !game.finalized && !hasInitializedDealer.current) {
-      console.log('🎯 Initializing random dealer because no dealer is set')
+      console.log('⚠️ Warning: Game has no dealer set. This should not happen with new games.')
+      console.log('🎯 Initializing random dealer as fallback for legacy game')
       hasInitializedDealer.current = true
       initializeRandomDealer()
     }
