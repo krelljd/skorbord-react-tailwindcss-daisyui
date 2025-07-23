@@ -224,6 +224,23 @@
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
   }
 
+  /* Long press visual feedback */
+  .long-press-active {
+    animation: longPressGlow 750ms ease-in-out forwards;
+  }
+
+  @keyframes longPressGlow {
+    0% { 
+      box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    }
+    50% { 
+      box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2);
+    }
+    100% { 
+      box-shadow: 0 0 0 12px rgba(59, 130, 246, 0.1);
+    }
+  }
+
   /* Touch-friendly drag handles */
   [data-draggable] {
     transition: transform 0.2s ease, opacity 0.2s ease;
