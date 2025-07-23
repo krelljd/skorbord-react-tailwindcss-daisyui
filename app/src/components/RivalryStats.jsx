@@ -16,7 +16,6 @@ const RivalryStats = ({ sqid, rivalries, players: globalPlayers, backToSetup }) 
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.data) {
-            console.log('Loaded localPlayers:', data.data);
             setLocalPlayers(data.data)
           }
         }

@@ -24,7 +24,7 @@ router.get('/', validateGameAccess, async (req, res, next) => {
       FROM stats s
       JOIN players p ON s.player_id = p.id
       WHERE s.game_id = ?
-      ORDER BY s.created_at ASC
+      ORDER BY COALESCE(s.player_order, 999), s.created_at ASC
     `, [gameId]);
     
     res.json(createResponse(true, stats));
@@ -122,6 +122,80 @@ router.post('/', validateGameAccess, validateUpdateStats, async (req, res, next)
     });
 
     res.json(createResponse(true, allStats));
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * PUT /api/:sqid/games/:gameId/stats/order - Update player order for a game
+ */
+router.put('/order', validateGameAccess, async (req, res, next) => {
+  try {
+    const { sqid, gameId } = req.params;
+    const { playerOrder } = req.body; // Array of player IDs in desired order
+    const { gameInfo } = req;
+    
+    if (gameInfo.finalized) {
+      throw new ConflictError('Cannot update player order for finalized games');
+    }
+    
+    if (!Array.isArray(playerOrder) || playerOrder.length === 0) {
+      throw new ValidationError('playerOrder must be a non-empty array of player IDs');
+    }
+    
+    // Verify all players exist in this game
+    const existingPlayerIds = await db.query(
+      'SELECT player_id FROM stats WHERE game_id = ?',
+      [gameId]
+    );
+    
+    const validPlayerIds = new Set(existingPlayerIds.map(p => p.player_id));
+    
+    // Check that all provided player IDs exist in the game
+    for (const playerId of playerOrder) {
+      if (!validPlayerIds.has(playerId)) {
+        throw new ValidationError(`Player ${playerId} not found in this game`);
+      }
+    }
+    
+    // Check that all players in the game are included in the new order
+    if (playerOrder.length !== existingPlayerIds.length) {
+      throw new ValidationError('All players in the game must be included in the new order');
+    }
+    
+    // Update player order in the database
+    await db.transaction(async (db) => {
+      for (let i = 0; i < playerOrder.length; i++) {
+        await db.run(
+          'UPDATE stats SET player_order = ? WHERE game_id = ? AND player_id = ?',
+          [i + 1, gameId, playerOrder[i]]
+        );
+      }
+    });
+    
+    // Get updated stats with new order
+    const updatedStats = await db.query(`
+      SELECT 
+        s.*,
+        p.name as player_name,
+        p.color
+      FROM stats s
+      JOIN players p ON s.player_id = p.id
+      WHERE s.game_id = ?
+      ORDER BY COALESCE(s.player_order, 999), s.created_at ASC
+    `, [gameId]);
+    
+    // Broadcast player order update to all clients
+    req.io?.to(`/sqid/${sqid}`).emit('player_order_updated', {
+      type: 'player_order_updated',
+      game_id: gameId,
+      sqid_id: sqid,
+      stats: updatedStats,
+      timestamp: new Date().toISOString()
+    });
+    
+    res.json(createResponse(true, updatedStats));
   } catch (error) {
     next(error);
   }

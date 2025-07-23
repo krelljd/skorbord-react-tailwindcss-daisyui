@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useConnection } from '../contexts/ConnectionContext.jsx'
 import { getPlayerBadgeColorClassById } from '../utils/playerColors'
+import { useDragAndDrop } from '../hooks/useDragAndDrop.js'
 import PlayerCard from './PlayerCard.jsx'
 
 const GamePlay = ({ 
@@ -98,6 +99,7 @@ const GamePlay = ({
     if (socket && game?.id) {
       socket.on('score_update', handleScoreUpdate)
       socket.on('game_completed', handleGameCompleted)
+      socket.on('player_order_updated', handlePlayerOrderUpdate)
       // Listen for show_rivalry_stats event to navigate all clients
       socket.on('show_rivalry_stats', (data) => {
         if (data?.sqid === sqid) {
@@ -106,9 +108,7 @@ const GamePlay = ({
       })
       // Listen for dealer changes from other clients
       socket.on('dealer_changed', (data) => {
-        console.log('📡 Received dealer_changed event:', data)
         if (data.game_id === game.id) {
-          console.log('📡 Setting dealer to:', data.dealer_id)
           // Always update dealer state from server broadcasts to maintain consistency
           setDealer(data.dealer_id)
           
@@ -125,6 +125,7 @@ const GamePlay = ({
       return () => {
         socket.off('score_update', handleScoreUpdate)
         socket.off('game_completed', handleGameCompleted)
+        socket.off('player_order_updated', handlePlayerOrderUpdate)
         socket.off('show_rivalry_stats')
         socket.off('dealer_changed')
       }
@@ -279,6 +280,12 @@ const GamePlay = ({
       }))
       setWinner(data.winner)
       onGameComplete()
+    }
+  }
+
+  const handlePlayerOrderUpdate = (data) => {
+    if (data.game_id === game.id) {
+      setGameStats(data.stats || [])
     }
   }
 
@@ -450,6 +457,44 @@ const GamePlay = ({
     }
   }
 
+  // Function to update player order
+  const updatePlayerOrder = async (reorderedStats) => {
+    if (loading || game.finalized) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      
+      // Extract player IDs in the new order
+      const playerOrder = reorderedStats.map(stat => stat.player_id)
+      
+      const response = await fetch(`/api/${sqid}/games/${game.id}/stats/order`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ playerOrder })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to update player order')
+      }
+
+      const result = await response.json()
+      
+      // Update local state with new order from server
+      setGameStats(result.data || [])
+
+    } catch (err) {
+      console.error('Failed to update player order:', err)
+      setError(err.message || 'Failed to update player order')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (!game) {
     return (
       <div className="text-center">
@@ -487,30 +532,17 @@ const GamePlay = ({
 
       {/* Player Cards Container */}
       <div className="mb-8">
-        <div className="grid gap-4">
-          {gameStats.map(stat => {
-            // Construct player object for PlayerCard
-            const player = {
-              id: stat.player_id,
-              name: stat.player_name,
-              color: stat.color || 'primary', // Fallback to 'primary' if color is missing
-              score: stat.score
-            };
-            return (
-              <PlayerCard
-                key={player.id}
-                player={player}
-                score={stat.score}
-                onScoreChange={updateScore}
-                disabled={loading || game.finalized}
-                scoreTally={scoreTallies[player.id]}
-                isWinner={winner?.player_id === player.id}
-                isDealer={dealer === player.id}
-                onDealerChange={game.finalized ? null : cycleDealer}
-              />
-            );
-          })}
-        </div>
+        <PlayerCardsList
+          gameStats={gameStats}
+          updateScore={updateScore}
+          updatePlayerOrder={updatePlayerOrder}
+          loading={loading}
+          gameFinalized={game.finalized}
+          scoreTallies={scoreTallies}
+          winner={winner}
+          dealer={dealer}
+          cycleDealer={cycleDealer}
+        />
       </div>
 
       {/* Finalize Button Container (fixed bottom) */}
@@ -556,6 +588,88 @@ const GamePlay = ({
           )
         })()}
       </div>
+    </div>
+  )
+}
+
+// Component to handle drag and drop for player cards
+const PlayerCardsList = ({ 
+  gameStats, 
+  updateScore, 
+  updatePlayerOrder, 
+  loading, 
+  gameFinalized, 
+  scoreTallies, 
+  winner, 
+  dealer, 
+  cycleDealer 
+}) => {
+  // Set up drag and drop
+  const { isDragging, draggedIndex, dragOverIndex, getDraggableProps } = useDragAndDrop(
+    gameStats,
+    updatePlayerOrder,
+    (stat) => stat.player_id
+  )
+
+  return (
+    <div className="grid gap-4">
+      {gameStats.map((stat, index) => {
+        // Construct player object for PlayerCard
+        const player = {
+          id: stat.player_id,
+          name: stat.player_name,
+          color: stat.color || 'primary', // Fallback to 'primary' if color is missing
+          score: stat.score
+        };
+
+        const draggableProps = gameFinalized ? {} : getDraggableProps(index)
+        const isDraggedCard = draggedIndex === index
+        const isDragTarget = dragOverIndex === index && draggedIndex !== index
+
+        return (
+          <div
+            key={player.id}
+            {...draggableProps}
+            className={`
+              player-card-container
+              transition-all duration-200
+              ${isDraggedCard ? 'opacity-50 scale-95' : ''}
+              ${isDragTarget ? 'border-t-4 border-primary' : ''}
+              ${!gameFinalized && gameStats.length > 1 ? 'cursor-move' : ''}
+              ${draggableProps.className || ''}
+            `.trim()}
+          >
+            {/* Drag handle indicator - visible only when draggable */}
+            {!gameFinalized && gameStats.length > 1 && (
+              <div className="drag-handle flex items-center justify-center py-1 mb-2">
+                <svg 
+                  className="w-4 h-4" 
+                  fill="currentColor" 
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                  <path d="M6 6a2 2 0 110-4 2 2 0 010 4zM6 12a2 2 0 110-4 2 2 0 010 4zM6 18a2 2 0 110-4 2 2 0 010 4z"/>
+                  <path d="M14 6a2 2 0 110-4 2 2 0 010 4zM14 12a2 2 0 110-4 2 2 0 010 4zM14 18a2 2 0 110-4 2 2 0 010 4z"/>
+                </svg>
+              </div>
+            )}
+            
+            {/* Player card content - wrapped in div to prevent event conflicts */}
+            <div style={{ pointerEvents: isDragging && isDraggedCard ? 'none' : 'auto' }}>
+              <PlayerCard
+                player={player}
+                score={stat.score}
+                onScoreChange={updateScore}
+                disabled={loading || gameFinalized}
+                scoreTally={scoreTallies[player.id]}
+                isWinner={winner?.player_id === player.id}
+                isDealer={dealer === player.id}
+                onDealerChange={gameFinalized ? null : cycleDealer}
+              />
+            </div>
+          </div>
+        );
+      })}
     </div>
   )
 }

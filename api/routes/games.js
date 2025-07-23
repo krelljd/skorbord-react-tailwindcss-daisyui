@@ -90,11 +90,12 @@ router.get('/', async (req, res, next) => {
           p.id,
           p.name,
           s.score,
+          s.player_order,
           s.created_at as score_updated_at
         FROM stats s
         JOIN players p ON s.player_id = p.id
         WHERE s.game_id = ?
-        ORDER BY s.created_at ASC
+        ORDER BY COALESCE(s.player_order, 999), s.created_at ASC
       `, [game.id]);
       
       game.players = players;
@@ -214,12 +215,13 @@ router.post('/', validateCreateGame, async (req, res, next) => {
         [gameData.id, gameData.sqid_id, gameData.game_type_id, gameData.rivalry_id, gameData.started_at, gameData.finalized, gameData.win_condition_type, gameData.win_condition_value, gameData.dealer_id]
       );
 
-      // Insert initial stats for each player (score 0)
-      for (const playerId of finalPlayerIds) {
+      // Insert initial stats for each player (score 0) with player order
+      for (let i = 0; i < finalPlayerIds.length; i++) {
+        const playerId = finalPlayerIds[i];
         const statId = generateUUID();
         await db.run(
-          'INSERT INTO stats (id, game_id, player_id, score, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
-          [statId, gameId, playerId, 0, gameData.started_at, gameData.started_at]
+          'INSERT INTO stats (id, game_id, player_id, score, player_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [statId, gameId, playerId, 0, i + 1, gameData.started_at, gameData.started_at]
         );
       }
 
@@ -281,12 +283,13 @@ router.get('/:gameId', validateGameAccess, async (req, res, next) => {
         p.id,
         p.name,
         s.score,
+        s.player_order,
         s.created_at as score_created_at,
         s.updated_at as score_updated_at
       FROM stats s
       JOIN players p ON s.player_id = p.id
       WHERE s.game_id = ?
-      ORDER BY s.created_at ASC
+      ORDER BY COALESCE(s.player_order, 999), s.created_at ASC
     `, [gameInfo.id]);
 
     game.players = players;
