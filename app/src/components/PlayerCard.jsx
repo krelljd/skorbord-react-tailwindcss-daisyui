@@ -53,6 +53,9 @@ const PlayerCard = ({
   const handlePointerDown = (e, change) => {
     if (disabled) return
     
+    // Prevent default behavior to stop iOS drag/selection
+    e.preventDefault()
+    
     // Capture the pointer to ensure we get all events
     e.currentTarget.setPointerCapture(e.pointerId)
     currentPointerId.current = e.pointerId
@@ -67,7 +70,7 @@ const PlayerCard = ({
         longPressExecuted.current = true
         handleScoreChange(change * 10)
       }
-    }, 500) // Standard long press duration
+    }, 300) // 300ms long press duration for scoring
   }
 
   const handlePointerUp = (e, change) => {
@@ -80,7 +83,7 @@ const PlayerCard = ({
     if (!longPressExecuted.current) {
       const duration = Date.now() - (pointerStartTime.current || 0)
       // Ensure it was a reasonable tap duration (not just a touch and immediate release)
-      if (duration < 500 && duration > 50) {
+      if (duration < 300 && duration > 50) {
         handleScoreChange(change)
       }
     }
@@ -220,13 +223,19 @@ const PlayerCard = ({
             aspectRatio: '1', 
             minHeight: '5rem', 
             height: '5rem',
-            touchAction: 'manipulation' // Prevents iOS zoom and improves touch responsiveness
+            touchAction: 'manipulation', // Prevents iOS zoom and improves touch responsiveness
+            WebkitUserSelect: 'none', // Prevent text selection
+            userSelect: 'none',
+            WebkitTouchCallout: 'none', // Prevent iOS callout menu
+            WebkitTapHighlightColor: 'transparent' // Remove tap highlight
           }}
           onPointerDown={(e) => handlePointerDown(e, -1)}
           onPointerUp={(e) => handlePointerUp(e, -1)}
           onPointerCancel={handlePointerCancel}
           onPointerLeave={handlePointerCancel}
           onClick={(e) => handleClick(e, -1)}
+          onContextMenu={(e) => e.preventDefault()} // Prevent right-click/long-press context menu
+          onDragStart={(e) => e.preventDefault()} // Prevent drag
           disabled={disabled}
           title="Tap: -1, Long press: -10"
         >
@@ -242,13 +251,19 @@ const PlayerCard = ({
             aspectRatio: '1', 
             minHeight: '5rem', 
             height: '5rem',
-            touchAction: 'manipulation' // Prevents iOS zoom and improves touch responsiveness
+            touchAction: 'manipulation', // Prevents iOS zoom and improves touch responsiveness
+            WebkitUserSelect: 'none', // Prevent text selection
+            userSelect: 'none',
+            WebkitTouchCallout: 'none', // Prevent iOS callout menu
+            WebkitTapHighlightColor: 'transparent' // Remove tap highlight
           }}
           onPointerDown={(e) => handlePointerDown(e, 1)}
           onPointerUp={(e) => handlePointerUp(e, 1)}
           onPointerCancel={handlePointerCancel}
           onPointerLeave={handlePointerCancel}
           onClick={(e) => handleClick(e, 1)}
+          onContextMenu={(e) => e.preventDefault()} // Prevent right-click/long-press context menu
+          onDragStart={(e) => e.preventDefault()} // Prevent drag
           disabled={disabled}
           title="Tap: +1, Long press: +10"
         >

@@ -19,7 +19,7 @@ export const useDragAndDrop = (items, onReorder, getItemId = (item) => item.id) 
   const touchStartPos = useRef({ x: 0, y: 0 })
   const touchDragStarted = useRef(false)
   const longPressTimer = useRef(null)
-  const longPressThreshold = 750 // Long press duration in ms
+  const longPressThreshold = 3000 // Long press duration in ms (3 seconds for player reordering)
   const moveThreshold = 10 // Maximum movement allowed during long press
   const scrollThreshold = 15 // Minimum vertical movement to detect scroll intent
   const hasDetectedScrollIntent = useRef(false) // Track if user is scrolling

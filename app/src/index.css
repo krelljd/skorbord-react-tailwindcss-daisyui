@@ -84,6 +84,21 @@
     /* Consistent card styling for players with reduced padding */
     /* DaisyUI classes: card bg-base-200 shadow-xl are applied in JSX */
   }
+
+  /* Score button styling - prevent iOS drag behavior */
+  .player-card button {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+  }
   
   /* Mobile-first container */
   .mobile-container {
