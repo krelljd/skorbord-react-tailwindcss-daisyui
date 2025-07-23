@@ -116,10 +116,10 @@ export const useDragAndDrop = (items, onReorder, getItemId = (item) => item.id) 
   const handleTouchStart = useCallback((index, event) => {
     // Check if touch started on a button or interactive element
     const target = event.target
-    const isButton = target.closest('button, [role="button"], input, select, textarea')
+    const isButton = target.closest('button, [role="button"], input, select, textarea, .btn')
     
     if (isButton) {
-      // Don't interfere with button interactions
+      // Don't interfere with button interactions at all
       return
     }
 

@@ -629,33 +629,55 @@ const PlayerCardsList = ({
         return (
           <div
             key={player.id}
-            {...draggableProps}
             className={`
               player-card-container
               transition-all duration-200
               ${isDraggedCard ? 'opacity-50 scale-95' : ''}
               ${isDragTarget ? 'border-t-4 border-primary' : ''}
-              ${!gameFinalized && gameStats.length > 1 ? 'cursor-move' : ''}
-              ${draggableProps.className || ''}
+              ${!gameFinalized && gameStats.length > 1 ? 'relative' : ''}
             `.trim()}
           >
-            {/* Drag handle indicator - visible only when draggable */}
-            {!gameFinalized && gameStats.length > 1 && (
-              <div className="drag-handle flex items-center justify-center py-1 mb-2">
-                <svg 
-                  className="w-4 h-4" 
-                  fill="currentColor" 
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
-                  <path d="M6 6a2 2 0 110-4 2 2 0 010 4zM6 12a2 2 0 110-4 2 2 0 010 4zM6 18a2 2 0 110-4 2 2 0 010 4z"/>
-                  <path d="M14 6a2 2 0 110-4 2 2 0 010 4zM14 12a2 2 0 110-4 2 2 0 010 4zM14 18a2 2 0 110-4 2 2 0 010 4z"/>
-                </svg>
-              </div>
-            )}
+            {/* Drag wrapper - only applies to non-button areas */}
+            <div
+              {...(gameFinalized ? {} : {
+                ...draggableProps,
+                // Override the className to not include cursor-move on buttons
+                className: `
+                  ${isDraggedCard ? 'opacity-50 scale-95' : ''}
+                  ${isDragTarget ? 'border-t-4 border-primary' : ''}
+                  ${draggableProps.className?.replace('cursor-move', '') || ''}
+                `.trim()
+              })}
+            >
             
             {/* Player card content - wrapped in div to prevent event conflicts */}
-            <div style={{ pointerEvents: isDragging && isDraggedCard ? 'none' : 'auto' }}>
+            <div 
+              style={{ pointerEvents: isDragging && isDraggedCard ? 'none' : 'auto' }}
+              onTouchStart={(e) => {
+                // Don't let drag system interfere with button interactions
+                const target = e.target
+                const isButton = target.closest('button, [role="button"]')
+                if (isButton) {
+                  e.stopPropagation()
+                }
+              }}
+              onTouchMove={(e) => {
+                // Don't let drag system interfere with button interactions
+                const target = e.target
+                const isButton = target.closest('button, [role="button"]')
+                if (isButton) {
+                  e.stopPropagation()
+                }
+              }}
+              onTouchEnd={(e) => {
+                // Don't let drag system interfere with button interactions
+                const target = e.target
+                const isButton = target.closest('button, [role="button"]')
+                if (isButton) {
+                  e.stopPropagation()
+                }
+              }}
+            >
               <PlayerCard
                 player={player}
                 score={stat.score}
@@ -666,6 +688,7 @@ const PlayerCardsList = ({
                 isDealer={dealer === player.id}
                 onDealerChange={gameFinalized ? null : cycleDealer}
               />
+            </div>
             </div>
           </div>
         );
