@@ -36,6 +36,7 @@ const CardApp = () => {
       // Socket event listeners for real-time updates
       socket.on('game_updated', handleGameUpdate)
       socket.on('game_started', handleGameStarted)
+      socket.on('dealer_changed', handleDealerChanged)
       socket.on('player_updated', handlePlayerUpdate)
       socket.on('rivalry_updated', handleRivalryUpdate)
       socket.on('error', handleSocketError)
@@ -129,6 +130,16 @@ const CardApp = () => {
   const handleGameStarted = (gameData) => {
     // When a game is started, we should reload the initial data to get the new game
     loadInitialData()
+  }
+
+  const handleDealerChanged = (data) => {
+    // Update the current game's dealer_id when dealer changes
+    if (data.game_id && currentGame && data.game_id === currentGame.id) {
+      setCurrentGame(prevGame => ({
+        ...prevGame,
+        dealer_id: data.dealer_id
+      }))
+    }
   }
 
   const handlePlayerUpdate = (playerData) => {

@@ -49,29 +49,40 @@ const GamePlay = ({
     }
   }, [game?.game_type_name, game?.win_condition_type, game?.win_condition_value, gameMetadata])
 
-  // Load game stats on mount
+  // Update dealer when game prop changes (e.g., from server updates)
+  React.useEffect(() => {
+    if (game?.dealer_id && game.dealer_id !== dealer) {
+      setDealer(game.dealer_id)
+    }
+  }, [game?.dealer_id, dealer])
+
+  // Initialize dealer from game prop and load game stats on mount
   useEffect(() => {
     if (game?.id) {
+      // Initialize dealer from game data if available
+      if (game.dealer_id) {
+        setDealer(game.dealer_id)
+      }
       loadGameStats()
       loadDealerInfo()
     }
   }, [game?.id])
 
-  // Initialize dealer if none exists and game is not finalized
+  // Initialize dealer if none exists and game is not finalized (for legacy games only)
   const hasInitializedDealer = useRef(false)
   useEffect(() => {
     // Only initialize dealer if:
     // 1. We have game stats loaded
-    // 2. No dealer is currently set
+    // 2. No dealer is currently set in both the state AND the game prop
     // 3. Game is not finalized
     // 4. We haven't already tried to initialize
-    if (gameStats.length > 0 && dealer === null && !game.finalized && !hasInitializedDealer.current) {
+    if (gameStats.length > 0 && dealer === null && !game?.dealer_id && !game.finalized && !hasInitializedDealer.current) {
       console.log('⚠️ Warning: Game has no dealer set. This should not happen with new games.')
       console.log('🎯 Initializing random dealer as fallback for legacy game')
       hasInitializedDealer.current = true
       initializeRandomDealer()
     }
-  }, [gameStats, dealer, game.finalized])
+  }, [gameStats, dealer, game?.dealer_id, game.finalized])
 
   // Reevaluate winner whenever gameStats changes
   useEffect(() => {
@@ -138,7 +149,10 @@ const GamePlay = ({
       const response = await fetch(`/api/${sqid}/games/${game.id}`)
       if (response.ok) {
         const data = await response.json()
-        setDealer(data.data?.dealer_id || null)
+        // Only update dealer if we don't already have one set
+        if (dealer === null && data.data?.dealer_id) {
+          setDealer(data.data.dealer_id)
+        }
       }
     } catch (err) {
       console.error('Failed to load dealer info:', err)
