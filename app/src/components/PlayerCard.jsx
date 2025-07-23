@@ -17,11 +17,10 @@ const PlayerCard = ({
   const [dealerChanging, setDealerChanging] = useState(false)
   const [localIsDealer, setLocalIsDealer] = useState(isDealer) // Local state to prevent flashing
   const longPressTimer = useRef(null)
-  const isLongPress = useRef(false)
-  const longPressExecuted = useRef(false) // Track if long press action was executed
-  const touchStartTime = useRef(null) // Track when touch started
-  const preventClick = useRef(false) // Prevent click after long press
+  const pointerStartTime = useRef(null)
+  const longPressExecuted = useRef(false)
   const glowTimeoutRef = useRef(null)
+  const currentPointerId = useRef(null)
 
   // Update local dealer state when prop changes, but with transition handling
   React.useEffect(() => {
@@ -50,69 +49,64 @@ const PlayerCard = ({
     }
   }
 
-  // Handle long press for ±10, tap/click for ±1 (works for both touch and mouse)
-  const handlePressStart = (change) => {
+  // Handle pointer events (unified touch/mouse handling)
+  const handlePointerDown = (e, change) => {
     if (disabled) return
     
-    isLongPress.current = false
-    longPressExecuted.current = false
-    preventClick.current = false
-    touchStartTime.current = Date.now()
+    // Capture the pointer to ensure we get all events
+    e.currentTarget.setPointerCapture(e.pointerId)
+    currentPointerId.current = e.pointerId
     
+    // Reset state
+    longPressExecuted.current = false
+    pointerStartTime.current = Date.now()
+    
+    // Start long press timer
     longPressTimer.current = setTimeout(() => {
-      isLongPress.current = true
-      longPressExecuted.current = true
-      preventClick.current = true // Prevent subsequent click
-      handleScoreChange(change * 10)
-      
-      // Safari-specific: Reduced prevention period from 300ms to 200ms
-      setTimeout(() => {
-        preventClick.current = false
-      }, 200)
-    }, 400) // Reduced long press threshold from 500ms to 400ms
+      if (currentPointerId.current === e.pointerId) {
+        longPressExecuted.current = true
+        handleScoreChange(change * 10)
+      }
+    }, 500) // Standard long press duration
   }
 
-  const handlePressEnd = (change) => {
-    if (disabled) return
+  const handlePointerUp = (e, change) => {
+    if (disabled || currentPointerId.current !== e.pointerId) return
     
-    const touchDuration = Date.now() - (touchStartTime.current || 0)
     clearTimeout(longPressTimer.current)
+    currentPointerId.current = null
     
-    // More aggressive prevention for Safari:
-    // Only execute single increment if all conditions are met
-    if (!longPressExecuted.current && 
-        !preventClick.current && 
-        touchDuration < 400 && // Updated to match new long press threshold
-        touchDuration > 30) { // Reduced minimum duration from 50ms to 30ms
-      
-      // Immediate execution for better responsiveness
-      if (!longPressExecuted.current && !preventClick.current) {
+    // Only execute single tap if long press wasn't executed
+    if (!longPressExecuted.current) {
+      const duration = Date.now() - (pointerStartTime.current || 0)
+      // Ensure it was a reasonable tap duration (not just a touch and immediate release)
+      if (duration < 500 && duration > 50) {
         handleScoreChange(change)
       }
     }
     
-    // Reset flags after a shorter delay to improve responsiveness - reduced from 200ms to 150ms
+    // Reset after a brief delay
     setTimeout(() => {
-      isLongPress.current = false
       longPressExecuted.current = false
-      touchStartTime.current = null
-    }, 150)
+      pointerStartTime.current = null
+    }, 100)
   }
 
-  const handlePressCancel = () => {
-    clearTimeout(longPressTimer.current)
-    isLongPress.current = false
-    longPressExecuted.current = false
-    preventClick.current = false
-    touchStartTime.current = null
+  const handlePointerCancel = (e) => {
+    if (currentPointerId.current === e.pointerId) {
+      clearTimeout(longPressTimer.current)
+      currentPointerId.current = null
+      longPressExecuted.current = false
+      pointerStartTime.current = null
+    }
   }
 
-  // Handle click events separately to prevent Safari issues
+  // Prevent click events when long press was executed
   const handleClick = (e, change) => {
     if (disabled) return
     
-    // Prevent click if we just did a long press
-    if (preventClick.current) {
+    // Prevent any click processing if we just did a long press
+    if (longPressExecuted.current) {
       e.preventDefault()
       e.stopPropagation()
       return
@@ -222,13 +216,16 @@ const PlayerCard = ({
           className={`btn btn-error btn-lg text-4xl font-bold w-full max-w-20 mx-auto transition-all duration-200 ${
             glowingButton === 'minus' ? 'ring-4 ring-error ring-opacity-75 shadow-lg shadow-error/50 scale-105' : ''
           }`}
-          style={{ aspectRatio: '1', minHeight: '5rem', height: '5rem' }}
-          onTouchStart={() => handlePressStart(-1)}
-          onTouchEnd={() => handlePressEnd(-1)}
-          onTouchCancel={handlePressCancel}
-          onMouseDown={() => handlePressStart(-1)}
-          onMouseUp={() => handlePressEnd(-1)}
-          onMouseLeave={handlePressCancel}
+          style={{ 
+            aspectRatio: '1', 
+            minHeight: '5rem', 
+            height: '5rem',
+            touchAction: 'manipulation' // Prevents iOS zoom and improves touch responsiveness
+          }}
+          onPointerDown={(e) => handlePointerDown(e, -1)}
+          onPointerUp={(e) => handlePointerUp(e, -1)}
+          onPointerCancel={handlePointerCancel}
+          onPointerLeave={handlePointerCancel}
           onClick={(e) => handleClick(e, -1)}
           disabled={disabled}
           title="Tap: -1, Long press: -10"
@@ -241,13 +238,16 @@ const PlayerCard = ({
           className={`btn btn-success btn-lg text-4xl font-bold w-full max-w-20 mx-auto transition-all duration-200 ${
             glowingButton === 'plus' ? 'ring-4 ring-success ring-opacity-75 shadow-lg shadow-success/50 scale-105' : ''
           }`}
-          style={{ aspectRatio: '1', minHeight: '5rem', height: '5rem' }}
-          onTouchStart={() => handlePressStart(1)}
-          onTouchEnd={() => handlePressEnd(1)}
-          onTouchCancel={handlePressCancel}
-          onMouseDown={() => handlePressStart(1)}
-          onMouseUp={() => handlePressEnd(1)}
-          onMouseLeave={handlePressCancel}
+          style={{ 
+            aspectRatio: '1', 
+            minHeight: '5rem', 
+            height: '5rem',
+            touchAction: 'manipulation' // Prevents iOS zoom and improves touch responsiveness
+          }}
+          onPointerDown={(e) => handlePointerDown(e, 1)}
+          onPointerUp={(e) => handlePointerUp(e, 1)}
+          onPointerCancel={handlePointerCancel}
+          onPointerLeave={handlePointerCancel}
           onClick={(e) => handleClick(e, 1)}
           disabled={disabled}
           title="Tap: +1, Long press: +10"
