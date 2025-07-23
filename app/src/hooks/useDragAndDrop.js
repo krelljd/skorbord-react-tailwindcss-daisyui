@@ -44,12 +44,49 @@ export const useDragAndDrop = (items, onReorder, getItemId = (item) => item.id) 
   
   // Handle drag start (mouse)
   const handleDragStart = useCallback((index, event) => {
+    // Check if drag started from the player name area
+    const target = event.target
+    const isPlayerNameArea = target.closest('.player-name-area')
+    
+    if (!isPlayerNameArea) {
+      // Prevent drag if not starting from player name area
+      event.preventDefault()
+      return false
+    }
+
     setDraggedIndex(index)
     setIsDragging(true)
     
-    // Set drag data for HTML5 drag and drop
-    event.dataTransfer.effectAllowed = 'move'
-    event.dataTransfer.setData('text/plain', index.toString())
+    // Enhanced Safari compatibility for drag data
+    try {
+      event.dataTransfer.effectAllowed = 'move'
+      // Safari requires multiple data formats for reliable operation
+      event.dataTransfer.setData('text/plain', index.toString())
+      event.dataTransfer.setData('application/x-player-index', index.toString())
+      // Additional Safari compatibility: set a default text value
+      event.dataTransfer.setData('text/html', `<div data-player-index="${index}">Player ${index}</div>`)
+    } catch (e) {
+      // Fallback for browsers that don't support setData
+      console.warn('Drag and drop may not work properly in this browser:', e)
+      // Safari fallback: try to set at least one data type
+      try {
+        event.dataTransfer.setData('text', index.toString())
+      } catch (fallbackError) {
+        console.warn('Drag fallback also failed:', fallbackError)
+      }
+    }
+    
+    // Safari-specific: Ensure the drag image is properly set
+    // This helps with Safari's drag preview behavior
+    if (event.dataTransfer.setDragImage && isPlayerNameArea) {
+      // Use the player name area as the drag image for consistency
+      try {
+        event.dataTransfer.setDragImage(isPlayerNameArea, isPlayerNameArea.offsetWidth / 2, isPlayerNameArea.offsetHeight / 2)
+      } catch (dragImageError) {
+        // Safari sometimes fails setDragImage, continue anyway
+        console.warn('Could not set custom drag image:', dragImageError)
+      }
+    }
   }, [])
   
   // Handle drag over (mouse) - must prevent default to allow drop
@@ -77,13 +114,43 @@ export const useDragAndDrop = (items, onReorder, getItemId = (item) => item.id) 
     event.preventDefault()
     event.stopPropagation()
     
-    if (draggedIndex !== null && onReorder && draggedIndex !== targetIndex) {
+    // Enhanced drag data retrieval for Safari compatibility
+    let sourceIndex = draggedIndex
+    try {
+      // Try multiple data formats in order of preference
+      const dragData = event.dataTransfer.getData('application/x-player-index') || 
+                      event.dataTransfer.getData('text/plain') ||
+                      event.dataTransfer.getData('text/html')?.match(/data-player-index="(\d+)"/)?.[1] ||
+                      event.dataTransfer.getData('text')
+      
+      if (dragData && !isNaN(parseInt(dragData))) {
+        sourceIndex = parseInt(dragData)
+      }
+    } catch (e) {
+      // Use fallback from state
+      console.warn('Could not read drag data, using fallback:', e)
+    }
+    
+    // Additional Safari validation: ensure indices are valid
+    if (sourceIndex === null || sourceIndex === undefined || 
+        targetIndex === null || targetIndex === undefined ||
+        sourceIndex < 0 || targetIndex < 0 ||
+        sourceIndex >= items.length || targetIndex >= items.length) {
+      console.warn('Invalid drag indices:', { sourceIndex, targetIndex, itemsLength: items.length })
+      // Reset drag state
+      setDraggedIndex(null)
+      setDragOverIndex(null)
+      setIsDragging(false)
+      return
+    }
+    
+    if (sourceIndex !== targetIndex && onReorder) {
       // Create new array with reordered items
       const newItems = [...items]
-      const draggedItem = newItems[draggedIndex]
+      const draggedItem = newItems[sourceIndex]
       
       // Remove the dragged item
-      newItems.splice(draggedIndex, 1)
+      newItems.splice(sourceIndex, 1)
       
       // Insert at new position
       newItems.splice(targetIndex, 0, draggedItem)
@@ -118,32 +185,45 @@ export const useDragAndDrop = (items, onReorder, getItemId = (item) => item.id) 
     const target = event.target
     const isButton = target.closest('button, [role="button"], input, select, textarea, .btn')
     
-    if (isButton) {
-      // Don't interfere with button interactions at all
+    // Only allow drag initiation from the player name area
+    const isPlayerNameArea = target.closest('.player-name-area')
+    
+    if (isButton || !isPlayerNameArea) {
+      // Don't interfere with button interactions or if not touching player name area
       return
     }
 
+    // Safari-specific: Check if this is a genuine touch start
     const touch = event.touches[0]
+    if (!touch) {
+      return
+    }
+
     touchStartPos.current = { x: touch.clientX, y: touch.clientY }
     touchDragStarted.current = false
     hasDetectedScrollIntent.current = false
     
-    // Start long press timer
+    // Start long press timer - 3 seconds for player reordering
     setIsLongPressActive(true)
     longPressTimer.current = setTimeout(() => {
-      // Only activate drag if user hasn't shown scroll intent
-      if (!hasDetectedScrollIntent.current) {
-        // Trigger haptic feedback if available
-        if (navigator.vibrate) {
-          navigator.vibrate(50) // Short vibration
-        }
-        
+      // Only activate drag if user hasn't shown scroll intent and touch is still active
+      if (!hasDetectedScrollIntent.current && !touchDragStarted.current) {
+        // Enhanced Safari touch drag initiation
         touchDragStarted.current = true
         setDraggedIndex(index)
         setIsDragging(true)
         setIsLongPressActive(false)
+        
+        // Safari-specific: Add haptic feedback if available
+        if (navigator.vibrate) {
+          try {
+            navigator.vibrate(50) // Short vibration for feedback
+          } catch (vibrateError) {
+            // Vibration not supported or failed, continue silently
+          }
+        }
       } else {
-        // User was scrolling, just clean up
+        // Cancel long press if scroll intent detected
         setIsLongPressActive(false)
       }
     }, longPressThreshold)
@@ -250,10 +330,10 @@ export const useDragAndDrop = (items, onReorder, getItemId = (item) => item.id) 
   
   // Generate props for draggable items
   const getDraggableProps = useCallback((index) => ({
-    draggable: true,
+    draggable: false, // Disable HTML5 drag by default
     'data-draggable': true,
     'data-drop-zone': index,
-    // Mouse events
+    // Mouse events - will only work if initiated from player-name-area
     onDragStart: (e) => handleDragStart(index, e),
     onDragOver: (e) => handleDragOver(index, e),
     onDragEnter: (e) => handleDragEnter(index, e),
@@ -264,10 +344,10 @@ export const useDragAndDrop = (items, onReorder, getItemId = (item) => item.id) 
     onTouchMove: (e) => handleTouchMove(index, e),
     onTouchEnd: (e) => handleTouchEnd(index, e),
     className: `
-      ${isDragging && draggedIndex === index ? 'opacity-50 scale-105' : ''}
-      ${dragOverIndex === index && draggedIndex !== index ? 'border-t-4 border-primary' : ''}
-      ${isLongPressActive && !isDragging ? 'ring-2 ring-primary ring-opacity-50 animate-pulse' : ''}
-      cursor-move select-none touch-none
+      ${isDragging && draggedIndex === index ? 'opacity-60 scale-[0.98] shadow-lg' : ''}
+      ${dragOverIndex === index && draggedIndex !== index ? 'border-t-2 border-primary/50' : ''}
+      ${isLongPressActive && !isDragging ? 'ring-1 ring-primary/30 bg-base-200/50' : ''}
+      transition-all duration-200 ease-out
     `.trim(),
     style: {
       // Improve touch experience on iOS
@@ -292,12 +372,51 @@ export const useDragAndDrop = (items, onReorder, getItemId = (item) => item.id) 
     dragOverIndex,
     isLongPressActive
   ])
+
+  // Generate props specifically for player name areas to enable mouse dragging
+  const getPlayerNameProps = useCallback((index) => {
+    // Safari browser detection (following Context7 best practices)
+    const isSafari = navigator.userAgent.includes('AppleWebKit') && !navigator.userAgent.includes('Chrome')
+    
+    return {
+      draggable: true, // Enable HTML5 drag for player name area
+      onDragStart: (e) => {
+        // This will be called when drag starts from player name area
+        handleDragStart(index, e)
+      },
+      className: 'player-name-area',
+      style: {
+        cursor: isDragging && draggedIndex === index ? 'grabbing' : 'grab',
+        // Enhanced Safari-specific improvements
+        WebkitUserDrag: 'element',
+        // Ensure the element is draggable in Safari
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        // Safari-specific: Prevent text selection during drag
+        MozUserSelect: 'none',
+        msUserSelect: 'none',
+        // Safari-specific: Improve touch handling
+        WebkitTouchCallout: 'none',
+        WebkitTapHighlightColor: 'transparent',
+        // Conditional transform handling for Safari (Context7 recommendation)
+        ...(isSafari ? {
+          // Safari has issues with transforms on drag previews, so avoid them
+          transform: 'none',
+          willChange: 'auto'
+        } : {
+          // For non-Safari browsers, allow normal transforms
+          willChange: isDragging && draggedIndex === index ? 'transform' : 'auto'
+        })
+      }
+    }
+  }, [handleDragStart, isDragging, draggedIndex])
   
   return {
     isDragging,
     draggedIndex,
     dragOverIndex,
     isLongPressActive,
-    getDraggableProps
+    getDraggableProps,
+    getPlayerNameProps
   }
 }

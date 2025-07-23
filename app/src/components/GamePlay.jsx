@@ -605,7 +605,7 @@ const PlayerCardsList = ({
   cycleDealer 
 }) => {
   // Set up drag and drop
-  const { isDragging, draggedIndex, dragOverIndex, getDraggableProps } = useDragAndDrop(
+  const { isDragging, draggedIndex, dragOverIndex, getDraggableProps, getPlayerNameProps } = useDragAndDrop(
     gameStats,
     updatePlayerOrder,
     (stat) => stat.player_id
@@ -623,6 +623,7 @@ const PlayerCardsList = ({
         };
 
         const draggableProps = gameFinalized ? {} : getDraggableProps(index)
+        const playerNameProps = gameFinalized ? {} : getPlayerNameProps(index)
         const isDraggedCard = draggedIndex === index
         const isDragTarget = dragOverIndex === index && draggedIndex !== index
 
@@ -687,6 +688,7 @@ const PlayerCardsList = ({
                 isWinner={winner?.player_id === player.id}
                 isDealer={dealer === player.id}
                 onDealerChange={gameFinalized ? null : cycleDealer}
+                playerNameProps={playerNameProps}
               />
             </div>
             </div>

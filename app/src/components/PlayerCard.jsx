@@ -9,7 +9,8 @@ const PlayerCard = ({
   scoreTally,
   isWinner,
   isDealer,           // New prop
-  onDealerChange      // New prop
+  onDealerChange,     // New prop
+  playerNameProps     // New prop for drag behavior
 }) => {
   if (!player) return null;
   const [isUpdating, setIsUpdating] = useState(false)
@@ -182,8 +183,11 @@ const PlayerCard = ({
       )}
 
       {/* Player Name as heading with DaisyUI/Tailwind color */}
-      <div className="text-center mb-1">
-        <h3 className={`text-lg font-semibold ${getPlayerTextColorClass(player)}`}> 
+      <div 
+        className="text-center mb-1 player-name-area py-2 px-1 rounded"
+        {...(playerNameProps || {})}
+      >
+        <h3 className={`text-lg font-semibold text-center ${getPlayerTextColorClass(player)}`}> 
           {player.name}
         </h3>
       </div>
