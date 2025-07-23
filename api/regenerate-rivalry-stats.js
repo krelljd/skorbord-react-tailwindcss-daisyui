@@ -105,8 +105,11 @@ async function updateRivalryStats(sqidId, gameTypeId, gameId) {
       const scores = await db.query(`SELECT player_id, score FROM stats WHERE game_id = ?`, [game.id]);
       const playerScore = scores.find(s => s.player_id === playerId)?.score ?? 0;
       
+      // Get winner's score for loss margin calculation
+      const winnerScore = scores.find(s => s.player_id === game.winner_id)?.score ?? 0;
+      
       // For win: margin = playerScore - next highest score
-      // For loss: margin = next lowest score - playerScore
+      // For loss: margin = winnerScore - playerScore (how much the winner beat this player by)
       const otherScores = scores.filter(s => s.player_id !== playerId).map(s => s.score);
       let margin = 0;
       
@@ -118,8 +121,8 @@ async function updateRivalryStats(sqidId, gameTypeId, gameId) {
         last10Results += 'W';
       } else {
         losses++;
-        const nextWorst = otherScores.length > 0 ? Math.min(...otherScores) : 0;
-        margin = nextWorst - playerScore;
+        // Fixed: loss margin should be how much the winner beat this player by
+        margin = winnerScore - playerScore;
         lossMargins.push(margin);
         last10Results += 'L';
       }
