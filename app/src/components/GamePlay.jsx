@@ -92,7 +92,16 @@ const GamePlay = ({
         console.log('📡 Received dealer_changed event:', data)
         if (data.game_id === game.id) {
           console.log('📡 Setting dealer to:', data.dealer_id)
+          // Always update dealer state from server broadcasts to maintain consistency
           setDealer(data.dealer_id)
+          
+          // Also update current game state if available
+          if (data.dealer_id !== undefined) {
+            setCurrentGame(prevGame => ({
+              ...prevGame,
+              dealer_id: data.dealer_id
+            }))
+          }
         }
       })
 
@@ -139,7 +148,12 @@ const GamePlay = ({
   }
 
   const updateDealer = async (playerId) => {
+    // Prevent multiple simultaneous dealer updates
+    if (loading) return
+    
     try {
+      setLoading(true)
+      
       const response = await fetch(`/api/${sqid}/games/${game.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -161,23 +175,19 @@ const GamePlay = ({
           win_condition_value: result.data.win_condition_value !== undefined ? result.data.win_condition_value : prevGame.win_condition_value
         }))
         
-        // Emit socket event for real-time updates to other clients
-        if (socket) {
-          socket.emit('dealer_changed', { 
-            game_id: game.id, 
-            dealer_id: result.data.dealer_id, // Use server response
-            sqid 
-          })
-        }
+        // No need to emit socket event here - the server now broadcasts dealer changes
+        // This prevents race conditions and ensures all clients get the same authoritative update
       }
     } catch (err) {
       console.error('Failed to update dealer:', err)
       setError('Failed to update dealer')
+    } finally {
+      setLoading(false)
     }
   }
 
   const cycleDealer = async () => {
-    if (gameStats.length === 0) return
+    if (gameStats.length === 0 || loading) return
     
     // Find current dealer index in the gameStats array
     const currentDealerIndex = gameStats.findIndex(stat => stat.player_id === dealer)

@@ -394,6 +394,16 @@ router.put('/:gameId', validateGameAccess, validateUpdateGame, async (req, res, 
       finalized: updatedGame.finalized,
       timestamp: new Date().toISOString()
     });
+
+    // If dealer was updated, broadcast dealer change to all clients in the sqid
+    if (dealer_id !== undefined) {
+      req.io?.to(`/sqid/${gameInfo.sqid_id}`).emit('dealer_changed', {
+        game_id: gameInfo.id,
+        dealer_id: updatedGame.dealer_id,
+        sqid: gameInfo.sqid_id,
+        timestamp: new Date().toISOString()
+      });
+    }
     
     res.json(createResponse(true, updatedGame));
   } catch (error) {
