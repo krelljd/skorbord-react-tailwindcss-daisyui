@@ -509,6 +509,7 @@ async function updateRivalryStats(sqidId, gameTypeId, gameId) {
   );
   if (!exists) return;
   // Get all finalized games for this rivalry and game type
+  // Fixed: Use g.rivalry_id to ensure we only include games from this specific rivalry
   const games = await db.query(`
     SELECT 
       g.id,
@@ -518,8 +519,7 @@ async function updateRivalryStats(sqidId, gameTypeId, gameId) {
       s.score
     FROM games g
     JOIN stats s ON g.id = s.game_id
-    JOIN rivalry_players rp ON s.player_id = rp.player_id
-    WHERE rp.rivalry_id = ? AND g.game_type_id = ? AND g.finalized = true
+    WHERE g.rivalry_id = ? AND g.game_type_id = ? AND g.finalized = true
     ORDER BY g.started_at ASC
   `, [rivalry.id, gameTypeId]);
 
@@ -528,12 +528,12 @@ async function updateRivalryStats(sqidId, gameTypeId, gameId) {
   // Calculate and upsert rivalry_player_stats for each player
   for (const playerId of playerIdList) {
     // Get all finalized games for this rivalry, game type, and player
+    // Fixed: Use g.rivalry_id to ensure we only include games from this specific rivalry
     const playerGames = await db.query(`
       SELECT g.id, g.winner_id, s.player_id, s.score
       FROM games g
       JOIN stats s ON g.id = s.game_id
-      JOIN rivalry_players rp ON s.player_id = rp.player_id
-      WHERE rp.rivalry_id = ? AND g.game_type_id = ? AND g.finalized = true AND s.player_id = ?
+      WHERE g.rivalry_id = ? AND g.game_type_id = ? AND g.finalized = true AND s.player_id = ?
       ORDER BY g.started_at ASC
     `, [rivalry.id, gameTypeId, playerId]);
 
