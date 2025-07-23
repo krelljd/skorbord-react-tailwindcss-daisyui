@@ -21,6 +21,8 @@ export const useDragAndDrop = (items, onReorder, getItemId = (item) => item.id) 
   const longPressTimer = useRef(null)
   const longPressThreshold = 750 // Long press duration in ms
   const moveThreshold = 10 // Maximum movement allowed during long press
+  const scrollThreshold = 15 // Minimum vertical movement to detect scroll intent
+  const hasDetectedScrollIntent = useRef(false) // Track if user is scrolling
   
   // Reset drag state when items array changes - but only if not currently dragging
   useEffect(() => {
@@ -103,6 +105,7 @@ export const useDragAndDrop = (items, onReorder, getItemId = (item) => item.id) 
     setIsDragging(false)
     setIsLongPressActive(false)
     touchDragStarted.current = false
+    hasDetectedScrollIntent.current = false
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current)
       longPressTimer.current = null
@@ -123,19 +126,26 @@ export const useDragAndDrop = (items, onReorder, getItemId = (item) => item.id) 
     const touch = event.touches[0]
     touchStartPos.current = { x: touch.clientX, y: touch.clientY }
     touchDragStarted.current = false
+    hasDetectedScrollIntent.current = false
     
     // Start long press timer
     setIsLongPressActive(true)
     longPressTimer.current = setTimeout(() => {
-      // Trigger haptic feedback if available
-      if (navigator.vibrate) {
-        navigator.vibrate(50) // Short vibration
+      // Only activate drag if user hasn't shown scroll intent
+      if (!hasDetectedScrollIntent.current) {
+        // Trigger haptic feedback if available
+        if (navigator.vibrate) {
+          navigator.vibrate(50) // Short vibration
+        }
+        
+        touchDragStarted.current = true
+        setDraggedIndex(index)
+        setIsDragging(true)
+        setIsLongPressActive(false)
+      } else {
+        // User was scrolling, just clean up
+        setIsLongPressActive(false)
       }
-      
-      touchDragStarted.current = true
-      setDraggedIndex(index)
-      setIsDragging(true)
-      setIsLongPressActive(false)
     }, longPressThreshold)
     
     // Don't prevent default here to allow normal scrolling if long press doesn't activate
@@ -150,17 +160,33 @@ export const useDragAndDrop = (items, onReorder, getItemId = (item) => item.id) 
     const deltaY = Math.abs(touch.clientY - touchStartPos.current.y)
     const totalDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
     
-    // Cancel long press if user moves too much before it activates
-    if (isLongPressActive && totalDistance > moveThreshold) {
-      setIsLongPressActive(false)
-      if (longPressTimer.current) {
-        clearTimeout(longPressTimer.current)
-        longPressTimer.current = null
+    // Detect scroll intent: primarily vertical movement beyond threshold
+    if (isLongPressActive && !hasDetectedScrollIntent.current) {
+      const isVerticalMovement = deltaY > scrollThreshold && deltaY > deltaX * 1.5
+      
+      if (isVerticalMovement) {
+        // User is scrolling - cancel long press and allow normal scrolling
+        hasDetectedScrollIntent.current = true
+        setIsLongPressActive(false)
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current)
+          longPressTimer.current = null
+        }
+        return // Allow the scroll to continue naturally
       }
-      return
+      
+      // Cancel long press if user moves too much in any direction before it activates
+      if (totalDistance > moveThreshold) {
+        setIsLongPressActive(false)
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current)
+          longPressTimer.current = null
+        }
+        return
+      }
     }
     
-    // If we're dragging, find what element we're over
+    // If we're in active drag mode, handle the drag
     if (touchDragStarted.current) {
       event.preventDefault()
       
@@ -175,7 +201,7 @@ export const useDragAndDrop = (items, onReorder, getItemId = (item) => item.id) 
         }
       }
     }
-  }, [draggedIndex, moveThreshold, isLongPressActive])
+  }, [draggedIndex, moveThreshold, scrollThreshold, isLongPressActive])
   
   // Handle touch end
   const handleTouchEnd = useCallback((index, event) => {
@@ -219,6 +245,7 @@ export const useDragAndDrop = (items, onReorder, getItemId = (item) => item.id) 
     setDragOverIndex(null)
     setIsDragging(false)
     touchDragStarted.current = false
+    hasDetectedScrollIntent.current = false
   }, [draggedIndex, items, onReorder])
   
   // Generate props for draggable items
@@ -247,7 +274,8 @@ export const useDragAndDrop = (items, onReorder, getItemId = (item) => item.id) 
       WebkitUserSelect: 'none',
       WebkitTouchCallout: 'none',
       WebkitTapHighlightColor: 'transparent',
-      touchAction: 'none',
+      // Only prevent touch action when actively dragging
+      touchAction: touchDragStarted.current ? 'none' : 'auto',
       transition: 'all 0.2s ease'
     }
   }), [
