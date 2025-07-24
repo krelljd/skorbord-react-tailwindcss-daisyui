@@ -604,8 +604,8 @@ const PlayerCardsList = ({
   dealer, 
   cycleDealer 
 }) => {
-  // Set up drag and drop
-  const { isDragging, draggedIndex, dragOverIndex, getDraggableProps, getPlayerNameProps } = useDragAndDrop(
+  // Set up drag and drop with new optimized hook
+  const { isDragging, draggedIndex, dragOverIndex, longPressStarted, getDraggableProps, getPlayerNameProps } = useDragAndDrop(
     gameStats,
     updatePlayerOrder,
     (stat) => stat.player_id

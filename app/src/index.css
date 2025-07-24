@@ -85,63 +85,97 @@
     /* DaisyUI classes: card bg-base-200 shadow-xl are applied in JSX */
   }
 
-  /* Player name area for drag interaction */
+  /* Player name area for drag interaction - DaisyUI optimized */
   .player-name-area {
-    transition: all 0.2s ease;
-    /* Cursor is now handled dynamically via drag props */
-    /* Safari-specific drag improvements */
+    /* DaisyUI design system transitions */
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Cursor management */
+    cursor: grab;
+    /* Text alignment and layout */
+    text-align: center;
+    display: block;
+    width: 100%;
+    /* Touch optimization for iOS Safari */
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-    -webkit-user-drag: element; /* Safari-specific: allows drag functionality */
-    /* Ensure text stays centered */
-    text-align: center;
-    display: block;
-    width: 100%;
-    /* Enhanced Safari compatibility */
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
-    /* Safari drag performance optimizations */
-    will-change: auto;
-    transform: translateZ(0); /* Force hardware acceleration on Safari */
-    /* Prevent Safari from interfering with drag operations */
-    -webkit-transform-style: preserve-3d;
-    transform-style: preserve-3d;
-    /* Ensure proper hit detection in Safari */
+    /* Improved positioning */
     position: relative;
     z-index: 1;
+    /* Remove HTML5 drag to prevent conflicts */
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
   }
 
-  /* Safari-specific drag state styling */
-  @supports (-webkit-touch-callout: none) {
-    .player-name-area[draggable="true"] {
-      /* Safari-specific cursor transitions */
-      cursor: -webkit-grab;
-      cursor: grab;
-    }
-    
-    .player-name-area[draggable="true"]:active {
-      cursor: -webkit-grabbing;
-      cursor: grabbing;
-    }
-    
-    /* Prevent Safari from applying default drag styles */
-    .player-name-area[draggable="true"]::selection {
-      background: transparent;
-    }
-    
-    .player-name-area[draggable="true"]::-moz-selection {
-      background: transparent;
+  /* Active drag cursor */
+  .player-name-area:active,
+  .player-name-area.cursor-grabbing {
+    cursor: grabbing;
+  }
+
+  /* DaisyUI hover effects for player name area - desktop only */
+  @media (hover: hover) and (pointer: fine) {
+    .player-name-area:hover {
+      background-color: rgba(var(--b2), 0.5);
+      transform: scale(1.02);
     }
   }
 
-  /* Subtle visual feedback for drag target area on touch devices */
+  /* Touch device optimization */
   @media (hover: none) and (pointer: coarse) {
     .player-name-area {
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      user-select: none;
+      /* Enhanced touch responsiveness */
+      touch-action: none;
+    }
+  }
+
+  /* Long press visual feedback */
+  .player-name-area.long-press-active {
+    background-color: rgba(var(--wa), 0.15);
+    transform: scale(1.02);
+    animation: longPressProgress 0.6s ease-out;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .player-name-area.long-press-active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, 
+      transparent 0%, 
+      rgba(var(--wa), 0.3) 50%, 
+      transparent 100%);
+    animation: shimmer 0.6s ease-in-out;
+    pointer-events: none;
+  }
+
+  @keyframes longPressProgress {
+    0% {
+      box-shadow: 0 0 0 0 rgba(var(--wa), 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 4px rgba(var(--wa), 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(var(--wa), 0);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
     }
   }
 
