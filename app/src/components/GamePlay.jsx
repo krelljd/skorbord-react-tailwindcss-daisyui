@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useConnection } from '../contexts/ConnectionContext.jsx'
 import { getPlayerBadgeColorClassById } from '../utils/playerColors'
-import { useDragAndDrop } from '../hooks/useDragAndDrop.js'
 import PlayerCard from './PlayerCard.jsx'
 
 const GamePlay = ({ 
@@ -27,6 +26,9 @@ const GamePlay = ({
     win_condition_type: game?.win_condition_type,
     win_condition_value: game?.win_condition_value
   })
+  
+  // Add reorder mode state
+  const [isReorderMode, setIsReorderMode] = useState(false)
   
   // Remove modal state, use winner state to control finalize button
   
@@ -508,21 +510,43 @@ const GamePlay = ({
 
   return (
     <div className="space-y-2 pb-6">
-      {/* Game Header - Memoized to prevent flashing */}
+      {/* Game Header with Reorder Button - Memoized to prevent flashing */}
       {React.useMemo(() => (
-        <div className="text-center">
-          <h2 className="text-2xl font-bold">{gameMetadata.game_type_name || <span className="text-error">[No game_type_name]</span>}</h2>
-          <p className="text-sm opacity-75">
-            {(gameMetadata.win_condition_type === 'win' ? 'First to' : gameMetadata.win_condition_type === 'lose' ? 'Lose at' : '[No win_condition_type]')}
-            {typeof gameMetadata.win_condition_value !== 'undefined' ? ` ${gameMetadata.win_condition_value}` : ' [No win_condition_value]'}
-          </p>
-          {winner && (
-            <div className={`badge ${getPlayerBadgeColorClassById(winner.player_id)} badge-lg mt-1`}>
-              🏆 {winner.player_name} Wins!
-            </div>
-          )} 
+        <div className="relative">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold">{gameMetadata.game_type_name || <span className="text-error">[No game_type_name]</span>}</h2>
+            <p className="text-sm opacity-75">
+              {(gameMetadata.win_condition_type === 'win' ? 'First to' : gameMetadata.win_condition_type === 'lose' ? 'Lose at' : '[No win_condition_type]')}
+              {typeof gameMetadata.win_condition_value !== 'undefined' ? ` ${gameMetadata.win_condition_value}` : ' [No win_condition_value]'}
+            </p>
+            {winner && (
+              <div className={`badge ${getPlayerBadgeColorClassById(winner.player_id)} badge-lg mt-1`}>
+                🏆 {winner.player_name} Wins!
+              </div>
+            )} 
+          </div>
+          
+          {/* Reorder Button - positioned on right side */}
+          {!game.finalized && gameStats.length > 1 && (
+            <button
+              onClick={() => setIsReorderMode(!isReorderMode)}
+              className={`absolute top-0 right-0 btn btn-sm btn-soft gap-1 ${
+                isReorderMode ? 'btn-primary btn-active' : ''
+              }`}
+              style={{
+                minHeight: '2.5rem',
+                minWidth: '2.5rem',
+                touchAction: 'manipulation'
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+              </svg>
+              <span className="hidden sm:inline">{isReorderMode ? 'Done' : 'Reorder'}</span>
+            </button>
+          )}
         </div>
-      ), [gameMetadata.game_type_name, gameMetadata.win_condition_type, gameMetadata.win_condition_value, winner])}
+      ), [gameMetadata.game_type_name, gameMetadata.win_condition_type, gameMetadata.win_condition_value, winner, game.finalized, gameStats.length, isReorderMode])}
 
       {error && (
         <div className="error-state">
@@ -542,6 +566,7 @@ const GamePlay = ({
           winner={winner}
           dealer={dealer}
           cycleDealer={cycleDealer}
+          isReorderMode={isReorderMode}
         />
       </div>
 
@@ -592,7 +617,7 @@ const GamePlay = ({
   )
 }
 
-// Component to handle drag and drop for player cards
+// Component to handle reorder mode for player cards
 const PlayerCardsList = ({ 
   gameStats, 
   updateScore, 
@@ -602,99 +627,107 @@ const PlayerCardsList = ({
   scoreTallies, 
   winner, 
   dealer, 
-  cycleDealer 
+  cycleDealer,
+  isReorderMode
 }) => {
-  // Set up drag and drop with new optimized hook
-  const { isDragging, draggedIndex, dragOverIndex, longPressStarted, getDraggableProps, getPlayerNameProps } = useDragAndDrop(
-    gameStats,
-    updatePlayerOrder,
-    (stat) => stat.player_id
-  )
+  // Simple reorder functions without drag and drop
+  const moveUp = (index) => {
+    if (index === 0) return // Already at top
+    
+    const newItems = [...gameStats]
+    const [movedItem] = newItems.splice(index, 1)
+    newItems.splice(index - 1, 0, movedItem)
+    updatePlayerOrder(newItems)
+  }
+
+  const moveDown = (index) => {
+    if (index === gameStats.length - 1) return // Already at bottom
+    
+    const newItems = [...gameStats]
+    const [movedItem] = newItems.splice(index, 1)
+    newItems.splice(index + 1, 0, movedItem)
+    updatePlayerOrder(newItems)
+  }
 
   return (
-    <div className="grid gap-2">
-      {gameStats.map((stat, index) => {
-        // Construct player object for PlayerCard
-        const player = {
-          id: stat.player_id,
-          name: stat.player_name,
-          color: stat.color || 'primary', // Fallback to 'primary' if color is missing
-          score: stat.score
-        };
+    <div className="space-y-2">
+      {/* Player Cards */}
+      <div className="grid gap-2">
+        {gameStats.map((stat, index) => {
+          // Construct player object for PlayerCard
+          const player = {
+            id: stat.player_id,
+            name: stat.player_name,
+            color: stat.color || 'primary',
+            score: stat.score
+          };
 
-        const draggableProps = gameFinalized ? {} : getDraggableProps(index)
-        const playerNameProps = gameFinalized ? {} : getPlayerNameProps(index)
-        const isDraggedCard = draggedIndex === index
-        const isDragTarget = dragOverIndex === index && draggedIndex !== index
-
-        return (
-          <div
-            key={player.id}
-            className={`
-              player-card-container
-              transition-all duration-200
-              ${isDraggedCard ? 'opacity-50 scale-95' : ''}
-              ${isDragTarget ? 'border-t-4 border-primary' : ''}
-              ${!gameFinalized && gameStats.length > 1 ? 'relative' : ''}
-            `.trim()}
-          >
-            {/* Drag wrapper - only applies to non-button areas */}
+          return (
             <div
-              {...(gameFinalized ? {} : {
-                ...draggableProps,
-                // Override the className to not include cursor-move on buttons
-                className: `
-                  ${isDraggedCard ? 'opacity-50 scale-95' : ''}
-                  ${isDragTarget ? 'border-t-4 border-primary' : ''}
-                  ${draggableProps.className?.replace('cursor-move', '') || ''}
-                `.trim()
-              })}
+              key={player.id}
+              className={`
+                player-card-container transition-all duration-200
+                ${isReorderMode ? 'flex items-center gap-2 bg-base-200/10 rounded-lg p-1' : ''}
+              `.trim()}
             >
-            
-            {/* Player card content - wrapped in div to prevent event conflicts */}
-            <div 
-              style={{ pointerEvents: isDragging && isDraggedCard ? 'none' : 'auto' }}
-              onTouchStart={(e) => {
-                // Don't let drag system interfere with button interactions
-                const target = e.target
-                const isButton = target.closest('button, [role="button"]')
-                if (isButton) {
-                  e.stopPropagation()
-                }
-              }}
-              onTouchMove={(e) => {
-                // Don't let drag system interfere with button interactions
-                const target = e.target
-                const isButton = target.closest('button, [role="button"]')
-                if (isButton) {
-                  e.stopPropagation()
-                }
-              }}
-              onTouchEnd={(e) => {
-                // Don't let drag system interfere with button interactions
-                const target = e.target
-                const isButton = target.closest('button, [role="button"]')
-                if (isButton) {
-                  e.stopPropagation()
-                }
-              }}
-            >
-              <PlayerCard
-                player={player}
-                score={stat.score}
-                onScoreChange={updateScore}
-                disabled={loading || gameFinalized}
-                scoreTally={scoreTallies[player.id]}
-                isWinner={winner?.player_id === player.id}
-                isDealer={dealer === player.id}
-                onDealerChange={gameFinalized ? null : cycleDealer}
-                playerNameProps={playerNameProps}
-              />
+              {/* Reorder buttons - left side */}
+              {isReorderMode && (
+                <div className="flex flex-col gap-1 ml-1">
+                  <button
+                    onClick={() => moveUp(index)}
+                    disabled={index === 0}
+                    className={`btn btn-xs btn-primary ${
+                      index === 0 ? 'btn-disabled opacity-30' : ''
+                    }`}
+                    style={{
+                      minHeight: '1.75rem',
+                      minWidth: '1.75rem',
+                      touchAction: 'manipulation'
+                    }}
+                    title="Move up"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => moveDown(index)}
+                    disabled={index === gameStats.length - 1}
+                    className={`btn btn-xs btn-primary ${
+                      index === gameStats.length - 1 ? 'btn-disabled opacity-30' : ''
+                    }`}
+                    style={{
+                      minHeight: '1.75rem',
+                      minWidth: '1.75rem',
+                      touchAction: 'manipulation'
+                    }}
+                    title="Move down"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+
+              {/* Player card - full width when not in reorder mode */}
+              <div className={isReorderMode ? 'flex-1 mr-1' : 'w-full'}>
+                <PlayerCard
+                  player={player}
+                  score={stat.score}
+                  onScoreChange={updateScore}
+                  disabled={loading || gameFinalized || isReorderMode}
+                  scoreTally={scoreTallies[player.id]}
+                  isWinner={winner?.player_id === player.id}
+                  isDealer={dealer === player.id}
+                  onDealerChange={gameFinalized || isReorderMode ? null : cycleDealer}
+                  playerNameProps={{}}
+                />
+              </div>
             </div>
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   )
 }
