@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useConnection } from '../contexts/ConnectionContext.jsx'
 import GameSetup from './GameSetup.jsx'
+import ConnectionStatus from './ConnectionStatus.jsx'
 import GamePlay from './GamePlay.jsx'
 import RivalryStats from './RivalryStats.jsx'
 import AdminPanel from './AdminPanel.jsx'
@@ -349,8 +350,9 @@ const CardApp = () => {
           </ul>
         </div>
         
-        {/* Right side - kept empty as requested */}
+        {/* Right side */}
         <div className="navbar-end">
+          <ConnectionStatus />
         </div>
       </div>
 

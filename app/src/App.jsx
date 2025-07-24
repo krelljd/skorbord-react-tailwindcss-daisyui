@@ -2,14 +2,14 @@
 import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import CardApp from './components/CardApp.jsx'
 import { ConnectionProvider } from './contexts/ConnectionContext.jsx'
-import ConnectionStatus from './components/ConnectionStatus.jsx'
+
 
 // Wrapper to provide sqid from route params to ConnectionProvider
 function CardAppWithConnection() {
   const { sqid } = useParams()
   return (
     <ConnectionProvider sqid={sqid}>
-      <ConnectionStatus />
+
       <CardApp />
     </ConnectionProvider>
   )

@@ -232,13 +232,13 @@
   }
 
   /* Connection status indicator */
-  .connection-indicator {
-    position: fixed;
-    top: 1rem;
-    right: 1rem;
-    z-index: 50;
-    /* DaisyUI classes: badge badge-sm badge-success/badge-error are applied in JSX */
-  }
+.connection-indicator {
+  /* Inline by default; no fixed positioning */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  /* DaisyUI classes: badge badge-sm badge-success/badge-error are applied in JSX */
+}
   
   /* Slide in animations for mobile views */
   .slide-in-bottom {
