@@ -134,6 +134,27 @@
     }
   }
 
+  /* iOS Safari specific optimizations */
+  @supports (-webkit-overflow-scrolling: touch) {
+    .player-name-area {
+      /* Prevent iOS Safari from interfering with custom drag */
+      -webkit-overflow-scrolling: auto;
+      overscroll-behavior: none;
+    }
+    
+    /* Prevent scrolling during drag operations */
+    body.dragging-active {
+      overflow: hidden !important;
+      position: fixed !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+    
+    html.dragging-active {
+      overflow: hidden !important;
+    }
+  }
+
   /* Long press visual feedback */
   .player-name-area.long-press-active {
     background-color: rgba(var(--wa), 0.15);
