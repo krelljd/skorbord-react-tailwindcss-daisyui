@@ -530,7 +530,7 @@ const GamePlay = ({
           {!game.finalized && gameStats.length > 1 && (
             <button
               onClick={() => setIsReorderMode(!isReorderMode)}
-              className={`absolute top-0 right-0 btn btn-sm btn-soft gap-1 ${
+              className={`absolute top-0 left-0 btn btn-sm btn-soft gap-1 ${
                 isReorderMode ? 'btn-primary btn-active' : ''
               }`}
               style={{

@@ -145,35 +145,7 @@ const PlayerCard = ({
 
   return (
     <div className={`player-card relative ${isWinner && player.color ? `ring-4 ${getPlayerRingColorClass(player)}` : ''}`}>
-      {/* Dealer Card Icon - Show for all players */}
-      <div 
-        className={`absolute -top-1 -right-1 w-8 h-8 flex items-center justify-center 
-          ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-110'} 
-          transition-all duration-200 z-20
-          ${dealerChanging ? 'animate-pulse' : ''}
-          ${localIsDealer && !dealerChanging ? 'opacity-100' : 'opacity-30 hover:opacity-60'}
-        `}
-        onClick={handleDealerClick}
-        title={disabled ? 
-          'Dealer selection disabled (game finalized)' : 
-          'Tap to cycle to next dealer'
-        }
-      >
-        {/* Playing Card SVG from RivalryStats timeline */}
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          className={`h-6 w-6 drop-shadow-lg transition-colors duration-200 ${
-            localIsDealer && !dealerChanging ? getPlayerTextColorClass(player) : 'text-gray-400'
-          }`}
-        >
-          <rect x="3" y="5" width="11.2" height="14.4" rx="1.6" fill="#222" stroke="#fff" strokeWidth="1.2" />
-          <rect x="7" y="1" width="11.2" height="14.4" rx="1.6" fill="#444" stroke="#fff" strokeWidth="1.2" />
-          <text x="9" y="11" fontSize="5.6" fill="#fff" fontWeight="bold" fontFamily="monospace">D</text>
-          <text x="13.5" y="6" fontSize="5.6" fill="#fff" fontWeight="bold" fontFamily="monospace">♠</text>
-        </svg>
-      </div>
+
 
       {/* Winner Badge - adjust positioning since dealer icon is always present */}
       {isWinner && player.color && (
@@ -182,14 +154,44 @@ const PlayerCard = ({
         </div>
       )}
 
-      {/* Player Name as heading with DaisyUI/Tailwind color */}
+      {/* Player Name and Dealer Card Icon aligned */}
       <div 
-        className="text-center mb-1 player-name-area py-2 px-1 rounded"
+        className="player-name-area py-2 px-1 rounded mb-1 flex items-center justify-center gap-2"
         {...(playerNameProps || {})}
       >
         <h3 className={`text-lg font-semibold text-center ${getPlayerTextColorClass(player)}`}> 
           {player.name}
         </h3>
+        {/* Dealer Card Icon - now on the right of name */}
+        <div
+          className={`w-8 h-8 flex items-center justify-center
+            ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-110'}
+            transition-all duration-200
+            ${dealerChanging ? 'animate-pulse' : ''}
+            ${localIsDealer && !dealerChanging ? 'opacity-100' : 'opacity-30 hover:opacity-60'}
+          `}
+          onClick={handleDealerClick}
+          title={disabled ?
+            'Dealer selection disabled (game finalized)' :
+            'Tap to cycle to next dealer'
+          }
+          style={{ minWidth: '2rem' }}
+        >
+          {/* Playing Card SVG from RivalryStats timeline */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className={`h-6 w-6 drop-shadow-lg transition-colors duration-200 ${
+              localIsDealer && !dealerChanging ? getPlayerTextColorClass(player) : 'text-gray-400'
+            }`}
+          >
+            <rect x="3" y="5" width="11.2" height="14.4" rx="1.6" fill="#222" stroke="#fff" strokeWidth="1.2" />
+            <rect x="7" y="1" width="11.2" height="14.4" rx="1.6" fill="#444" stroke="#fff" strokeWidth="1.2" />
+            <text x="9" y="11" fontSize="5.6" fill="#fff" fontWeight="bold" fontFamily="monospace">D</text>
+            <text x="13.5" y="6" fontSize="5.6" fill="#fff" fontWeight="bold" fontFamily="monospace">♠</text>
+          </svg>
+        </div>
       </div>
 
       {/* Score Display with Tally Superscript */}
